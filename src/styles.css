@@ -124,7 +124,6 @@
   --term-glow: oklch(0.74 0.1 200 / 0.25);
   --term-glow-strong: oklch(0.74 0.1 200 / 0.5);
   --border: oklch(0.35 0.03 200);
-}
   --card: oklch(0.18 0.012 240);
   --card-foreground: oklch(0.92 0.02 140);
   --popover: oklch(0.18 0.012 240);
