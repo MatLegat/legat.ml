@@ -74,7 +74,7 @@
 
 :root {
   --radius: 0.25rem;
-  /* Terminal dark palette */
+  /* Terminal dark palette — default: green */
   --background: oklch(0.16 0.012 240);
   --foreground: oklch(0.92 0.02 140);
   --terminal-bg: oklch(0.14 0.012 240);
@@ -85,6 +85,46 @@
   --term-magenta: oklch(0.78 0.18 330);
   --term-red: oklch(0.72 0.2 25);
   --term-dim: oklch(0.55 0.02 200);
+  --term-prompt: var(--term-green);
+  --term-glow: oklch(0.82 0.18 145 / 0.35);
+  --term-glow-strong: oklch(0.82 0.18 145 / 0.6);
+}
+
+/* AMBER — classic phosphor amber CRT */
+.theme-amber {
+  --background: oklch(0.14 0.02 60);
+  --foreground: oklch(0.86 0.16 75);
+  --terminal-bg: oklch(0.12 0.02 60);
+  --terminal-header: oklch(0.2 0.025 60);
+  --term-green: oklch(0.86 0.16 75);
+  --term-cyan: oklch(0.78 0.12 55);
+  --term-yellow: oklch(0.92 0.15 90);
+  --term-magenta: oklch(0.7 0.18 30);
+  --term-red: oklch(0.65 0.22 25);
+  --term-dim: oklch(0.55 0.08 65);
+  --term-prompt: oklch(0.86 0.16 75);
+  --term-glow: oklch(0.86 0.16 75 / 0.4);
+  --term-glow-strong: oklch(0.86 0.16 75 / 0.65);
+  --border: oklch(0.3 0.04 65);
+}
+
+/* SOLARIZED DARK — Ethan Schoonover inspired */
+.theme-solarized {
+  --background: oklch(0.27 0.03 200);
+  --foreground: oklch(0.74 0.03 200);
+  --terminal-bg: oklch(0.24 0.028 200);
+  --terminal-header: oklch(0.31 0.03 200);
+  --term-green: oklch(0.7 0.16 130);
+  --term-cyan: oklch(0.74 0.1 200);
+  --term-yellow: oklch(0.78 0.16 85);
+  --term-magenta: oklch(0.6 0.18 340);
+  --term-red: oklch(0.62 0.2 25);
+  --term-dim: oklch(0.5 0.03 200);
+  --term-prompt: oklch(0.7 0.16 130);
+  --term-glow: oklch(0.74 0.1 200 / 0.25);
+  --term-glow-strong: oklch(0.74 0.1 200 / 0.5);
+  --border: oklch(0.35 0.03 200);
+}
   --card: oklch(0.18 0.012 240);
   --card-foreground: oklch(0.92 0.02 140);
   --popover: oklch(0.18 0.012 240);
@@ -189,7 +229,7 @@
     z-index: 1;
   }
 
-  .crt-glow { text-shadow: 0 0 8px oklch(0.82 0.18 145 / 0.35); }
+  .crt-glow { text-shadow: 0 0 8px var(--term-glow); }
 
   @keyframes blink-block {
     0%, 49% { opacity: 1; }
@@ -200,9 +240,9 @@
     width: 0.55em;
     height: 1.05em;
     vertical-align: text-bottom;
-    background: var(--term-green);
+    background: var(--term-prompt);
     margin-left: 2px;
     animation: blink-block 1s steps(1) infinite;
-    box-shadow: 0 0 8px oklch(0.82 0.18 145 / 0.6);
+    box-shadow: 0 0 8px var(--term-glow-strong);
   }
 }

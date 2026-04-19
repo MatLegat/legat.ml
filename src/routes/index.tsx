@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Typewriter, type Segment } from "@/components/Typewriter";
+
+type ThemeName = "green" | "amber" | "solarized";
+const THEME_CLASS: Record<ThemeName, string> = {
+  green: "",
+  amber: "theme-amber",
+  solarized: "theme-solarized",
+};
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -204,26 +211,44 @@ function experienceOutput(): Segment[] {
   return segs;
 }
 
+type HistoryEntry = { id: number; cmd: string; output: ReactNode };
+
 function Index() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [cmdDone, setCmdDone] = useState<boolean[]>(() => blocks.map(() => false));
   const [outDone, setOutDone] = useState<boolean[]>(() => blocks.map(() => false));
   const [skipped, setSkipped] = useState(false);
+  const [theme, setTheme] = useState<ThemeName>("green");
+  const [showBanner, setShowBanner] = useState(true);
+  const [showIntro, setShowIntro] = useState(true);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const historyId = useRef(0);
+  const allDoneRef = useRef(false);
 
-  // auto-scroll as content grows
+  // auto-scroll
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [activeIdx, cmdDone, outDone]);
+  }, [activeIdx, cmdDone, outDone, history, theme]);
 
-  // skip on click / key
+  // skip intro on key
   useEffect(() => {
-    const skip = () => setSkipped(true);
+    const skip = (e: KeyboardEvent) => {
+      if (allDoneRef.current) return;
+      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        setSkipped(true);
+      }
+    };
     window.addEventListener("keydown", skip);
     return () => window.removeEventListener("keydown", skip);
   }, []);
+
+  const allDone = activeIdx >= blocks.length;
+  allDoneRef.current = allDone;
 
   useEffect(() => {
     if (skipped) {
@@ -233,15 +258,113 @@ function Index() {
     }
   }, [skipped]);
 
-  const allDone = activeIdx >= blocks.length;
+  useEffect(() => {
+    if (allDone) inputRef.current?.focus();
+  }, [allDone]);
+
+  function pushHistory(cmd: string, output: ReactNode) {
+    historyId.current += 1;
+    setHistory((h) => [...h, { id: historyId.current, cmd, output }]);
+  }
+
+  function runCommand(raw: string) {
+    const cmd = raw.trim();
+    if (!cmd) {
+      pushHistory("", null);
+      return;
+    }
+    const [name, ...args] = cmd.split(/\s+/);
+
+    switch (name) {
+      case "help":
+        pushHistory(
+          cmd,
+          <div className="text-sm">
+            <div><span className="text-term-yellow">help</span>                    list commands</div>
+            <div><span className="text-term-yellow">theme</span> <span className="text-term-dim">&lt;name&gt;</span>           palette: <span className="text-term-green">green</span> · <span className="text-term-yellow">amber</span> · <span className="text-term-cyan">solarized</span></div>
+            <div><span className="text-term-yellow">theme</span>                   show current theme</div>
+            <div><span className="text-term-yellow">whoami</span> · <span className="text-term-yellow">about</span> · <span className="text-term-yellow">skills</span> · <span className="text-term-yellow">experience</span> · <span className="text-term-yellow">education</span> · <span className="text-term-yellow">contact</span></div>
+            <div><span className="text-term-yellow">clear</span>                   clear the screen</div>
+          </div>,
+        );
+        break;
+      case "theme": {
+        if (args.length === 0) {
+          pushHistory(
+            cmd,
+            <div className="text-sm">
+              <div>current theme: <span className="text-term-yellow">{theme}</span></div>
+              <div className="text-term-dim">available: green · amber · solarized</div>
+            </div>,
+          );
+          break;
+        }
+        const t = args[0].toLowerCase() as ThemeName;
+        if (t === "green" || t === "amber" || t === "solarized") {
+          setTheme(t);
+          pushHistory(
+            cmd,
+            <div className="text-sm">
+              <span className="text-term-green">✓</span> theme switched to{" "}
+              <span className="text-term-yellow">{t}</span>
+            </div>,
+          );
+        } else {
+          pushHistory(
+            cmd,
+            <div className="text-sm text-term-red">
+              theme: unknown palette '{args[0]}' — try green, amber, or solarized
+            </div>,
+          );
+        }
+        break;
+      }
+      case "clear":
+      case "cls":
+        setHistory([]);
+        setShowBanner(false);
+        setShowIntro(false);
+        break;
+      case "whoami":
+        pushHistory(cmd, <StaticOutput segments={blocks[0].output} />);
+        break;
+      case "about":
+      case "cat":
+        pushHistory(cmd, <StaticOutput segments={blocks[1].output} />);
+        break;
+      case "skills":
+      case "ls":
+        pushHistory(cmd, <StaticOutput segments={blocks[2].output} />);
+        break;
+      case "experience":
+      case "git":
+        pushHistory(cmd, <StaticOutput segments={blocks[3].output} />);
+        break;
+      case "education":
+        pushHistory(cmd, <StaticOutput segments={blocks[4].output} />);
+        break;
+      case "contact":
+        pushHistory(cmd, <StaticOutput segments={blocks[5].output} />);
+        break;
+      default:
+        pushHistory(
+          cmd,
+          <div className="text-sm text-term-red">
+            command not found: {name} — type{" "}
+            <span className="text-term-yellow">help</span>
+          </div>,
+        );
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-3 sm:p-6 md:p-10">
+    <div
+      className={`min-h-screen bg-background text-foreground p-3 sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
+    >
       <div
         className="mx-auto max-w-5xl rounded-md border border-border shadow-2xl overflow-hidden scanlines"
         style={{ backgroundColor: "var(--terminal-bg)" }}
       >
-        {/* terminal chrome */}
         <div
           className="flex items-center justify-between px-4 py-2 border-b border-border"
           style={{ backgroundColor: "var(--terminal-header)" }}
@@ -252,35 +375,44 @@ function Index() {
             <span className="h-3 w-3 rounded-full bg-[oklch(0.72_0.16_145)]" />
           </div>
           <div className="text-xs text-term-dim">— matteus@legat: ~/cv —</div>
-          <div className="text-xs text-term-dim hidden sm:block">zsh</div>
+          <div className="text-xs text-term-dim hidden sm:block">{theme}</div>
         </div>
 
-        {/* terminal body */}
         <div
           ref={scrollRef}
-          onClick={() => setSkipped(true)}
+          onClick={() => {
+            if (!allDone) setSkipped(true);
+            else inputRef.current?.focus();
+          }}
           className="relative z-0 p-4 sm:p-6 md:p-8 text-sm sm:text-[15px] leading-relaxed max-h-[80vh] overflow-y-auto crt-glow"
         >
-          <pre className="text-term-green whitespace-pre-wrap m-0 mb-4 text-xs sm:text-sm">
+          {showBanner && (
+            <pre
+              className="whitespace-pre-wrap m-0 mb-4 text-xs sm:text-sm"
+              style={{ color: "var(--term-prompt)" }}
+            >
 {`  __  __       _   _                    _                  _   
  |  \\/  | __ _| |_| |_ ___ _   _ ___   | |    ___  __ _ __| |_ 
  | |\\/| |/ _\` | __| __/ _ \\ | | / __|  | |   / _ \\/ _\` |/ _\` __|
  | |  | | (_| | |_| ||  __/ |_| \\__ \\  | |__|  __/ (_| | (_| |_ 
  |_|  |_|\\__,_|\\__|\\__\\___|\\__,_|___/  |_____\\___|\\__, |\\__,_\\_|
                                                   |___/        `}
-          </pre>
-          <div className="text-term-dim mb-6 text-xs">
-            // type any key or click to skip animation
-          </div>
+            </pre>
+          )}
+          {showIntro && (
+            <div className="text-term-dim mb-6 text-xs">
+              // press enter/space to skip · type{" "}
+              <span className="text-term-yellow">help</span> when prompt appears
+            </div>
+          )}
 
           {blocks.map((b, i) => {
             if (i > activeIdx) return null;
             const isActive = i === activeIdx;
-
             return (
               <div key={b.id} className="mb-6">
                 <div>
-                  {PROMPT}
+                  <Prompt />
                   <Typewriter
                     segments={b.command}
                     speed={b.cmdSpeed ?? 28}
@@ -319,18 +451,67 @@ function Index() {
             );
           })}
 
-          {allDone && (
-            <div>
-              {PROMPT}
-              <span className="cursor-block" aria-hidden />
+          {history.map((h) => (
+            <div key={h.id} className="mb-4">
+              <div>
+                <Prompt />
+                <span>{h.cmd}</span>
+              </div>
+              {h.output && <div className="mt-1">{h.output}</div>}
             </div>
+          ))}
+
+          {allDone && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                runCommand(input);
+                setInput("");
+              }}
+              className="flex items-center"
+            >
+              <Prompt />
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                spellCheck={false}
+                autoComplete="off"
+                aria-label="terminal input"
+                className="flex-1 bg-transparent outline-none border-none caret-transparent text-foreground"
+              />
+              <span className="cursor-block" aria-hidden />
+            </form>
           )}
         </div>
       </div>
 
       <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
-        matteus@legat.ml · built with React · {new Date().getFullYear()}
+        matteus@legat.ml · theme: {theme} · {new Date().getFullYear()}
       </p>
     </div>
+  );
+}
+
+function Prompt() {
+  return (
+    <>
+      <span style={{ color: "var(--term-prompt)" }}>matteus@legat</span>
+      <span className="text-term-dim">:</span>
+      <span className="text-term-cyan">~</span>
+      <span className="text-term-dim">$ </span>
+    </>
+  );
+}
+
+function StaticOutput({ segments }: { segments: Segment[] }) {
+  return (
+    <span>
+      {segments.map((s, i) => (
+        <span key={i} className={s.className} style={{ whiteSpace: "pre-wrap" }}>
+          {s.text}
+        </span>
+      ))}
+    </span>
   );
 }
