@@ -476,7 +476,7 @@ function Index() {
       className={`box-border h-dvh overflow-hidden bg-background p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
     >
       <div
-        className="terminal-window mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[15rem] max-w-5xl flex-col overflow-hidden rounded-md border border-border shadow-2xl"
+        className="terminal-window mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[16rem] max-w-5xl flex-col overflow-hidden rounded-md border border-border shadow-2xl"
         style={{ backgroundColor: "var(--terminal-bg)" }}
       >
         <div
@@ -632,7 +632,7 @@ function Index() {
         </div>
       </div>
 
-      <div className="fixed bottom-5 md:bottom-3 inset-x-0 z-10 flex flex-col gap-1 px-2">
+      <div className="hide-on-short-height fixed inset-x-0 bottom-5 z-10 flex flex-col gap-1 px-2 md:bottom-3">
         <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
           {"matteus@legat.ml"}
           {" · theme: "}

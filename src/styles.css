@@ -264,6 +264,12 @@
     color: var(--term-dim);
   }
 
+  @media (max-height: 324px) {
+    .hide-on-short-height {
+      display: none;
+    }
+  }
+
   .terminal-input-shell {
     position: relative;
     min-width: 0;
@@ -274,6 +280,13 @@
     font: inherit;
     letter-spacing: inherit;
     white-space: pre;
+  }
+
+  @media (pointer: coarse) {
+    .terminal-input-field,
+    .terminal-input-mirror {
+      font-size: 16px;
+    }
   }
 
   .terminal-input-field {
