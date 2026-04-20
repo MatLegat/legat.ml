@@ -476,7 +476,7 @@ function Index() {
       className={`min-h-screen bg-background text-foreground p-3 sm:p-6 md:p-10 pb-0! ${THEME_CLASS[theme]}`}
     >
       <div
-        className="terminal-window mx-auto flex h-[calc(100vh-5.25rem)] sm:h-[calc(100vh-6rem)] min-h-[15rem] max-w-5xl flex-col overflow-hidden rounded-md border border-border shadow-2xl"
+        className="terminal-window mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[15rem] max-w-5xl flex-col overflow-hidden rounded-md border border-border shadow-2xl"
         style={{ backgroundColor: "var(--terminal-bg)" }}
       >
         <div
