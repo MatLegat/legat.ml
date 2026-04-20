@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { Typewriter, type Segment } from "@/components/Typewriter";
 
-type ThemeName = "green" | "amber" | "solarized";
+type ThemeName = "green" | "amber" | "solarized" | "solarized-light";
 const THEME_CLASS: Record<ThemeName, string> = {
   green: "",
   amber: "theme-amber",
   solarized: "theme-solarized",
+  "solarized-light": "theme-solarized-light",
 };
+const THEMES: ThemeName[] = ["green", "amber", "solarized", "solarized-light"];
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -56,7 +59,7 @@ const blocks: Block[] = [
   {
     id: "whoami",
     command: [{ text: "whoami" }],
-    cmdSpeed: 28,
+    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "Matteus Legat", className: "text-term-yellow crt-glow", speed: FAST },
@@ -68,7 +71,7 @@ const blocks: Block[] = [
   {
     id: "cat",
     command: [{ text: "cat about.md" }],
-    cmdSpeed: 28,
+    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "# About\n", className: "text-term-magenta", speed: FAST },
@@ -86,7 +89,7 @@ const blocks: Block[] = [
   {
     id: "skills",
     command: [{ text: "ls ./skills" }],
-    cmdSpeed: 28,
+    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "frontend/  ", className: "text-term-cyan", speed: FAST },
@@ -106,27 +109,28 @@ const blocks: Block[] = [
   {
     id: "exp",
     command: [{ text: "git log --oneline experience" }],
-    cmdSpeed: 24,
-    output: [
-      { text: "\n" },
-      ...experienceOutput(),
-    ],
+    cmdSpeed: 20,
+    output: [{ text: "\n" }, ...experienceOutput()],
   },
   {
     id: "edu",
     command: [{ text: "cat education.txt" }],
-    cmdSpeed: 28,
+    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "[2014–2018] ", className: "text-term-yellow", speed: FAST },
       { text: "Bachelor in Computer Science\n", speed: FAST },
-      { text: "            Federal University of Santa Catarina — UFSC\n", className: "text-term-dim", speed: FAST },
+      {
+        text: "            Federal University of Santa Catarina — UFSC\n",
+        className: "text-term-dim",
+        speed: FAST,
+      },
     ],
   },
   {
     id: "contact",
     command: [{ text: "./contact.sh" }],
-    cmdSpeed: 28,
+    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "> ", className: "text-term-green", speed: MED },
@@ -170,10 +174,7 @@ function experienceOutput(): Segment[] {
       period: "2018–2019",
       role: "Full-Stack Web Developer (Part-time)",
       company: "Incentiv.me",
-      bullets: [
-        "Social crowdfunding platform",
-        "Ruby on Rails, Mithril.js, PostgreSQL APIs",
-      ],
+      bullets: ["Social crowdfunding platform", "Ruby on Rails, Mithril.js, PostgreSQL APIs"],
     },
     {
       hash: "27ab9d1",
@@ -204,7 +205,7 @@ function experienceOutput(): Segment[] {
     segs.push({ text: j.role, className: "text-term-yellow", speed: FAST });
     segs.push({ text: ` @ ${j.company}\n`, className: "text-term-cyan", speed: FAST });
     for (const b of j.bullets) {
-      segs.push({ text: `         └─ ${b}\n`, speed: FAST });
+      segs.push({ text: `        └─ ${b}\n`, speed: FAST });
     }
     segs.push({ text: "\n" });
   }
@@ -223,17 +224,54 @@ function Index() {
   const [showIntro, setShowIntro] = useState(true);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [input, setInput] = useState("");
+  const [caretIndex, setCaretIndex] = useState(0);
+  const [caretOffset, setCaretOffset] = useState(0);
+  const [inputFocused, setInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mirrorMarkerRef = useRef<HTMLSpanElement>(null);
   const historyId = useRef(0);
   const allDoneRef = useRef(false);
 
-  // auto-scroll
-  useEffect(() => {
+  function scrollToBottom(behavior: ScrollBehavior = "auto") {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [activeIdx, cmdDone, outDone, history, theme]);
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }
+
+  const allDone = activeIdx >= blocks.length;
+  allDoneRef.current = allDone;
+
+  // auto-scroll
+  useEffect(() => {
+    scrollToBottom(allDone ? "smooth" : "auto");
+  }, [activeIdx, allDone, cmdDone, outDone, history, theme]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || allDone) return;
+
+    const syncScroll = () => {
+      el.scrollTop = el.scrollHeight;
+    };
+
+    const mutationObserver = new MutationObserver(syncScroll);
+    mutationObserver.observe(el, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    const resizeObserver = new ResizeObserver(syncScroll);
+    resizeObserver.observe(el);
+
+    syncScroll();
+
+    return () => {
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+    };
+  }, [allDone]);
 
   // skip intro on key
   useEffect(() => {
@@ -247,9 +285,6 @@ function Index() {
     return () => window.removeEventListener("keydown", skip);
   }, []);
 
-  const allDone = activeIdx >= blocks.length;
-  allDoneRef.current = allDone;
-
   useEffect(() => {
     if (skipped) {
       setActiveIdx(blocks.length);
@@ -260,6 +295,49 @@ function Index() {
 
   useEffect(() => {
     if (allDone) inputRef.current?.focus();
+  }, [allDone]);
+
+  function cycleTheme() {
+    setTheme((current) => THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
+  }
+
+  useLayoutEffect(() => {
+    const inputEl = inputRef.current;
+    const markerEl = mirrorMarkerRef.current;
+
+    if (!allDone || !inputEl || !markerEl) return;
+
+    const nextOffset = Math.max(0, markerEl.offsetLeft - inputEl.scrollLeft);
+    setCaretOffset(nextOffset);
+  }, [allDone, input, caretIndex]);
+
+  useEffect(() => {
+    const inputEl = inputRef.current;
+    if (!allDone || !inputEl) return;
+
+    const syncCaret = () => {
+      setCaretIndex(inputEl.selectionStart ?? 0);
+      setCaretOffset((current) => Math.max(0, current));
+    };
+
+    const syncCaretWithFrame = () => {
+      requestAnimationFrame(syncCaret);
+    };
+
+    syncCaret();
+    inputEl.addEventListener("keyup", syncCaret);
+    inputEl.addEventListener("click", syncCaret);
+    inputEl.addEventListener("select", syncCaret);
+    inputEl.addEventListener("scroll", syncCaret);
+    window.addEventListener("resize", syncCaretWithFrame);
+
+    return () => {
+      inputEl.removeEventListener("keyup", syncCaret);
+      inputEl.removeEventListener("click", syncCaret);
+      inputEl.removeEventListener("select", syncCaret);
+      inputEl.removeEventListener("scroll", syncCaret);
+      window.removeEventListener("resize", syncCaretWithFrame);
+    };
   }, [allDone]);
 
   function pushHistory(cmd: string, output: ReactNode) {
@@ -280,11 +358,31 @@ function Index() {
         pushHistory(
           cmd,
           <div className="text-sm">
-            <div><span className="text-term-yellow">help</span>                    list commands</div>
-            <div><span className="text-term-yellow">theme</span> <span className="text-term-dim">&lt;name&gt;</span>           palette: <span className="text-term-green">green</span> · <span className="text-term-yellow">amber</span> · <span className="text-term-cyan">solarized</span></div>
-            <div><span className="text-term-yellow">theme</span>                   show current theme</div>
-            <div><span className="text-term-yellow">whoami</span> · <span className="text-term-yellow">about</span> · <span className="text-term-yellow">skills</span> · <span className="text-term-yellow">experience</span> · <span className="text-term-yellow">education</span> · <span className="text-term-yellow">contact</span></div>
-            <div><span className="text-term-yellow">clear</span>                   clear the screen</div>
+            <div>
+              <span className="text-term-yellow">help</span> list commands
+            </div>
+            <div>
+              <span className="text-term-yellow">theme</span>{" "}
+              <span className="text-term-dim">&lt;name&gt;</span> palette:{" "}
+              <span className="text-term-green">green</span> ·{" "}
+              <span className="text-term-yellow">amber</span> ·{" "}
+              <span className="text-term-cyan">solarized</span> ·{" "}
+              <span className="text-term-magenta">solarized-light</span>
+            </div>
+            <div>
+              <span className="text-term-yellow">theme</span> show current theme
+            </div>
+            <div>
+              <span className="text-term-yellow">whoami</span> ·{" "}
+              <span className="text-term-yellow">about</span> ·{" "}
+              <span className="text-term-yellow">skills</span> ·{" "}
+              <span className="text-term-yellow">experience</span> ·{" "}
+              <span className="text-term-yellow">education</span> ·{" "}
+              <span className="text-term-yellow">contact</span>
+            </div>
+            <div>
+              <span className="text-term-yellow">clear</span> clear the screen
+            </div>
           </div>,
         );
         break;
@@ -293,14 +391,18 @@ function Index() {
           pushHistory(
             cmd,
             <div className="text-sm">
-              <div>current theme: <span className="text-term-yellow">{theme}</span></div>
-              <div className="text-term-dim">available: green · amber · solarized</div>
+              <div>
+                current theme: <span className="text-term-yellow">{theme}</span>
+              </div>
+              <div className="text-term-dim">
+                available: green · amber · solarized · solarized-light
+              </div>
             </div>,
           );
           break;
         }
         const t = args[0].toLowerCase() as ThemeName;
-        if (t === "green" || t === "amber" || t === "solarized") {
+        if (t === "green" || t === "amber" || t === "solarized" || t === "solarized-light") {
           setTheme(t);
           pushHistory(
             cmd,
@@ -313,7 +415,7 @@ function Index() {
           pushHistory(
             cmd,
             <div className="text-sm text-term-red">
-              theme: unknown palette '{args[0]}' — try green, amber, or solarized
+              theme: unknown palette '{args[0]}' — try green, amber, solarized, or solarized-light
             </div>,
           );
         }
@@ -350,23 +452,35 @@ function Index() {
         pushHistory(
           cmd,
           <div className="text-sm text-term-red">
-            command not found: {name} — type{" "}
-            <span className="text-term-yellow">help</span>
+            command not found: {name} — type <span className="text-term-yellow">help</span>
           </div>,
         );
     }
   }
 
+  const name = ` __  __       _   _                  
+|  \\/  | __ _| |_| |_ ___ _   _ ___   
+| |\\/| |/ _\` | __| __/ _ \\ | | / __|  
+| |  | | (_| | |_| ||  __/ |_| \\__ \\  
+|_|  |_|\\__,_|\\__|\\__\\___|\\__,_|___/  `;
+
+  const surname = ` _                   _   
+| |    ___  __ _  __| |_ 
+| |   / _ \\/ _\` |/ _\` __|
+| |__|  __/ (_| | (_| |_ 
+|_____\\___|\\__,_|\\__,_\\_|
+           |___/        `;
+
   return (
     <div
-      className={`min-h-screen bg-background text-foreground p-3 sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
+      className={`min-h-screen bg-background text-foreground p-3 sm:p-6 md:p-10 pb-0! ${THEME_CLASS[theme]}`}
     >
       <div
-        className="mx-auto max-w-5xl rounded-md border border-border shadow-2xl overflow-hidden scanlines"
+        className="terminal-window mx-auto flex h-[calc(100vh-5.25rem)] sm:h-[calc(100vh-6rem)] min-h-[15rem] max-w-5xl flex-col overflow-hidden rounded-md border border-border shadow-2xl"
         style={{ backgroundColor: "var(--terminal-bg)" }}
       >
         <div
-          className="flex items-center justify-between px-4 py-2 border-b border-border"
+          className="terminal-window-bar flex shrink-0 items-center justify-between border-b border-border px-4 py-2"
           style={{ backgroundColor: "var(--terminal-header)" }}
         >
           <div className="flex items-center gap-2">
@@ -375,7 +489,15 @@ function Index() {
             <span className="h-3 w-3 rounded-full bg-[oklch(0.72_0.16_145)]" />
           </div>
           <div className="text-xs text-term-dim">— matteus@legat: ~/cv —</div>
-          <div className="text-xs text-term-dim hidden sm:block">{theme}</div>
+          <button
+            type="button"
+            onClick={cycleTheme}
+            className="hidden sm:block text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
+            aria-label={`Current theme: ${theme}. Click to switch theme.`}
+            title="Click to cycle theme"
+          >
+            {theme}
+          </button>
         </div>
 
         <div
@@ -384,25 +506,28 @@ function Index() {
             if (!allDone) setSkipped(true);
             else inputRef.current?.focus();
           }}
-          className="relative z-0 p-4 sm:p-6 md:p-8 text-sm sm:text-[15px] leading-relaxed max-h-[80vh] overflow-y-auto crt-glow"
+          className="terminal-window-content relative z-0 min-h-0 flex-1 overflow-y-auto p-4 text-sm leading-relaxed crt-glow sm:p-6 sm:text-[15px] md:p-8"
         >
           {showBanner && (
-            <pre
-              className="whitespace-pre-wrap m-0 mb-4 text-xs sm:text-sm"
-              style={{ color: "var(--term-prompt)" }}
-            >
-{`  __  __       _   _                    _                  _   
- |  \\/  | __ _| |_| |_ ___ _   _ ___   | |    ___  __ _ __| |_ 
- | |\\/| |/ _\` | __| __/ _ \\ | | / __|  | |   / _ \\/ _\` |/ _\` __|
- | |  | | (_| | |_| ||  __/ |_| \\__ \\  | |__|  __/ (_| | (_| |_ 
- |_|  |_|\\__,_|\\__|\\__\\___|\\__,_|___/  |_____\\___|\\__, |\\__,_\\_|
-                                                  |___/        `}
-            </pre>
+            <div className="flex items-start flex-col mb-4 sm:gap-2 sm:flex-row">
+              <pre
+                className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
+                style={{ color: "var(--term-prompt)" }}
+              >
+                {name}
+              </pre>
+              <pre
+                className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
+                style={{ color: "var(--term-prompt)" }}
+              >
+                {surname}
+              </pre>
+            </div>
           )}
           {showIntro && (
             <div className="text-term-dim mb-6 text-xs">
-              // press enter/space to skip · type{" "}
-              <span className="text-term-yellow">help</span> when prompt appears
+              // press enter/space to skip · type <span className="text-term-yellow">help</span>{" "}
+              when prompt appears
             </div>
           )}
 
@@ -467,28 +592,72 @@ function Index() {
                 e.preventDefault();
                 runCommand(input);
                 setInput("");
+                setCaretIndex(0);
               }}
               className="flex items-center"
             >
               <Prompt />
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                spellCheck={false}
-                autoComplete="off"
-                aria-label="terminal input"
-                className="flex-1 bg-transparent outline-none border-none caret-transparent text-foreground"
-              />
-              <span className="cursor-block" aria-hidden />
+              <div className="terminal-input-shell ml-2 flex-1">
+                <div className="terminal-input-mirror" aria-hidden>
+                  <span>{input.slice(0, caretIndex) || "\u200b"}</span>
+                  <span ref={mirrorMarkerRef} className="terminal-input-marker" />
+                </div>
+                <input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setCaretIndex(e.target.selectionStart ?? e.target.value.length);
+                  }}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => setInputFocused(false)}
+                  onKeyUp={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
+                  onClick={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
+                  onSelect={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-label="terminal input"
+                  className="terminal-input-field"
+                />
+                {inputFocused && (
+                  <span
+                    className="cursor-block terminal-input-cursor"
+                    style={{ left: `${caretOffset}px` }}
+                    aria-hidden
+                  />
+                )}
+              </div>
             </form>
           )}
         </div>
       </div>
 
-      <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
-        matteus@legat.ml · theme: {theme} · {new Date().getFullYear()}
-      </p>
+      <div className="fixed bottom-5 md:bottom-3 inset-x-0 z-10 flex flex-col gap-1 px-2">
+        <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
+          {"matteus@legat.ml"}
+          {" · theme: "}
+          <button
+            type="button"
+            onClick={cycleTheme}
+            className="cursor-pointer text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
+            aria-label={`Current theme: ${theme}. Click to switch theme.`}
+            title="Click to cycle theme"
+          >
+            {theme}
+          </button>
+        </p>
+        <p className="mx-auto max-w-5xl text-center text-xs text-term-dim">
+          <a
+            href={cvPdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
+          >
+            Download CV as PDF
+          </a>
+          {` · ${new Date().getFullYear()}`}
+        </p>
+      </div>
     </div>
   );
 }
