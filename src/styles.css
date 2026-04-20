@@ -232,6 +232,9 @@
 
   html,
   body {
+    height: 100dvh;
+    overflow: hidden;
+    margin: 0;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-mono);
