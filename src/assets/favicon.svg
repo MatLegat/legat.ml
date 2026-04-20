@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33.867 33.867">
+  <g>
+    <rect width="33.867" height="33.867" paint-order="stroke fill markers" ry="8.996"/>
+    <text xml:space="preserve" font-family="sans-serif" font-size="8" style="line-height:1.25;white-space:pre;shape-inside:url(#a)" transform="scale(.2646)"><tspan x="3.041" y="52.357">.</tspan></text>
+    <g fill="#0f0" transform="translate(1.098 -.046)">
+      <path d="M-.546 8.65H9.926v16.659H-.546Z" opacity=".5" paint-order="stroke fill markers"/>
+      <g stroke-width=".265" aria-label=".ml" font-family="Ubuntu Mono derivative Powerline" font-size="22.578" font-weight="700" style="line-height:1.25">
+        <path d="M6.772 22.781c.153 1.518-1.684 2.508-2.954 1.822-1.526-.638-1.426-3.195.177-3.673 1.259-.51 2.883.404 2.777 1.851m11.357-8.941c1.131-.093 2.322.548 2.607 1.7.456 1.881.225 3.838.283 5.757v3.268H18.76c-.014-2.35.028-4.701-.023-7.05.292-1.06-1.318-1.942-1.706-.994.19 1.326.107 2.668.126 4.002H14.9c-.048-1.277.128-2.583-.173-3.833-.226-.811-1.791-.762-1.43.212v7.663h-2.258V14.359c1.523-.346 3.233-.883 4.73-.175.573.603 1.53-.56 2.36-.344m14.088 10.273c-1.442.745-3.228.928-4.775.418-1.738-.687-2.069-2.807-2.02-4.456v-8.741h-2.936V9.031h5.712c.005 3.925-.009 7.85.007 11.775-.145 1.267 1.22 1.865 2.274 1.535.646-.04 1.59-.918 1.484.197z" style="-inkscape-font-specification:&quot;Ubuntu Mono derivative Powerline&quot;"/>
+      </g>
+    </g>
+  </g>
+</svg>
