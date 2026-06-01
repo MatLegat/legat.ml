@@ -485,17 +485,27 @@
 
   @keyframes star-float {
     0% {
-      transform: translate3d(0, 0, 0) scale(1);
+      transform: translate3d(var(--star-offset-x, 0px), var(--star-offset-y, 0px), 0) scale(1);
       opacity: 0.72;
     }
 
     50% {
-      transform: translate3d(10px, -12px, 0) scale(1.18);
+      transform: translate3d(
+          calc(var(--star-offset-x, 0px) + 10px),
+          calc(var(--star-offset-y, 0px) - 12px),
+          0
+        )
+        scale(1.18);
       opacity: 1;
     }
 
     100% {
-      transform: translate3d(-12px, 9px, 0) scale(0.94);
+      transform: translate3d(
+          calc(var(--star-offset-x, 0px) - 12px),
+          calc(var(--star-offset-y, 0px) + 9px),
+          0
+        )
+        scale(0.94);
       opacity: 0.82;
     }
   }

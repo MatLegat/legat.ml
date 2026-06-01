@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 const STAR_COLOR_ORDERS = [
   ["#ffffff", "#93c5fd", "#a5b4fc", "#f472b6", "#5eead4"],
@@ -15,7 +15,15 @@ type StarStyle = CSSProperties & {
   "--star-color-3": string;
   "--star-color-4": string;
   "--star-color-5": string;
+  "--star-offset-x": string;
+  "--star-offset-y": string;
 };
+
+type StarDefinition = (typeof STARS)[number];
+
+const REPULSION_RADIUS = 250;
+const REPULSION_STRENGTH = 10;
+const POINTER_LERP = 0.18;
 
 const STARS = [
   {
@@ -349,6 +357,81 @@ const STARS = [
 ];
 
 export default function StarsBackground() {
+  const starRefs = useRef<Array<HTMLSpanElement | null>>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const pointerTarget = { x: -9999, y: -9999, active: false };
+    const pointerCurrent = { x: -9999, y: -9999 };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      pointerTarget.x = event.clientX;
+      pointerTarget.y = event.clientY;
+      pointerTarget.active = true;
+    };
+
+    const resetPointer = () => {
+      pointerTarget.x = -9999;
+      pointerTarget.y = -9999;
+      pointerTarget.active = false;
+    };
+
+    const updateStarOffset = (element: HTMLSpanElement, star: StarDefinition) => {
+      const baseX = (Number.parseFloat(star.left) / 100) * window.innerWidth;
+      const baseY = (Number.parseFloat(star.top) / 100) * window.innerHeight;
+      const dx = baseX - pointerCurrent.x;
+      const dy = baseY - pointerCurrent.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (!pointerTarget.active || distance >= REPULSION_RADIUS || distance === 0) {
+        element.style.setProperty("--star-offset-x", "0px");
+        element.style.setProperty("--star-offset-y", "0px");
+        return;
+      }
+
+      const force = (1 - distance / REPULSION_RADIUS) ** 2;
+      const layerStrength = star.layer === "near" ? 1 : 0.6;
+      const magnitude = force * REPULSION_STRENGTH * layerStrength;
+      const offsetX = (dx / distance) * magnitude;
+      const offsetY = (dy / distance) * magnitude;
+
+      element.style.setProperty("--star-offset-x", `${offsetX.toFixed(2)}px`);
+      element.style.setProperty("--star-offset-y", `${offsetY.toFixed(2)}px`);
+    };
+
+    let frameId = 0;
+
+    const animate = () => {
+      pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * POINTER_LERP;
+      pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * POINTER_LERP;
+
+      starRefs.current.forEach((element, index) => {
+        if (!element) {
+          return;
+        }
+
+        updateStarOffset(element, STARS[index]);
+      });
+
+      frameId = window.requestAnimationFrame(animate);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerleave", resetPointer);
+    window.addEventListener("blur", resetPointer);
+    frameId = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerleave", resetPointer);
+      window.removeEventListener("blur", resetPointer);
+      window.cancelAnimationFrame(frameId);
+    };
+  }, []);
+
   return (
     <div className="stars-bg" aria-hidden="true">
       {STARS.map((star, index) =>
@@ -360,6 +443,9 @@ export default function StarsBackground() {
           return (
             <span
               key={`${star.left}-${star.top}-${index}`}
+              ref={(element) => {
+                starRefs.current[index] = element;
+              }}
               className={`stars-bg__star stars-bg__star--${star.layer}`}
               style={
                 {
@@ -374,6 +460,8 @@ export default function StarsBackground() {
                   "--star-color-3": colorOrder[2],
                   "--star-color-4": colorOrder[3],
                   "--star-color-5": colorOrder[4],
+                  "--star-offset-x": "0px",
+                  "--star-offset-y": "0px",
                 } as StarStyle
               }
             />
