@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { Typewriter, type Segment } from "@/components/Typewriter";
+import StarsBackground from "@/components/StarsBackground";
 
 type ThemeName = "green" | "amber" | "solarized" | "solarized-light";
 const THEME_CLASS: Record<ThemeName, string> = {
@@ -472,193 +473,198 @@ function Index() {
            |___/        `;
 
   return (
-    <div
-      className={`box-border h-dvh overflow-hidden bg-background p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
-    >
+    <>
+      <StarsBackground />
       <div
-        className="terminal-window mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[16rem] max-w-5xl flex-col overflow-hidden rounded-md border border-border shadow-2xl"
-        style={{ backgroundColor: "var(--terminal-bg)" }}
+        className={`box-border h-dvh overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
       >
-        <div
-          className="terminal-window-bar flex shrink-0 items-center justify-between border-b border-border px-4 py-2"
-          style={{ backgroundColor: "var(--terminal-header)" }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-[oklch(0.65_0.2_25)]" />
-            <span className="h-3 w-3 rounded-full bg-[oklch(0.78_0.16_85)]" />
-            <span className="h-3 w-3 rounded-full bg-[oklch(0.72_0.16_145)]" />
-          </div>
-          <div className="text-xs text-term-dim">— matteus@legat: ~/cv —</div>
-          <button
-            type="button"
-            onClick={cycleTheme}
-            className="hidden sm:block text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
-            aria-label={`Current theme: ${theme}. Click to switch theme.`}
-            title="Click to cycle theme"
+        <div className="terminal-window-blur mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[16rem] max-w-5xl flex-col overflow-hidden rounded-md backdrop-blur-xs">
+          <div
+            className="terminal-window mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[16rem] w-full flex-col overflow-hidden rounded-md border border-border shadow-2xl backdrop-blur-md"
+            style={{ backgroundColor: "var(--terminal-bg)" }}
           >
-            {theme}
-          </button>
-        </div>
-
-        <div
-          ref={scrollRef}
-          onClick={() => {
-            if (!allDone) setSkipped(true);
-            else inputRef.current?.focus();
-          }}
-          className="terminal-window-content relative z-0 min-h-0 flex-1 overflow-y-auto p-4 text-sm leading-relaxed crt-glow sm:p-6 sm:text-[15px] md:p-8"
-        >
-          {showBanner && (
-            <div className="flex items-start flex-col mb-4 sm:gap-2 sm:flex-row">
-              <pre
-                className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
-                style={{ color: "var(--term-prompt)" }}
-              >
-                {name}
-              </pre>
-              <pre
-                className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
-                style={{ color: "var(--term-prompt)" }}
-              >
-                {surname}
-              </pre>
-            </div>
-          )}
-          {showIntro && (
-            <div className="text-term-dim mb-6 text-xs">
-              // press enter/space to skip · type <span className="text-term-yellow">help</span>{" "}
-              when prompt appears
-            </div>
-          )}
-
-          {blocks.map((b, i) => {
-            if (i > activeIdx) return null;
-            const isActive = i === activeIdx;
-            return (
-              <div key={b.id} className="mb-6">
-                <div>
-                  <Prompt />
-                  <Typewriter
-                    segments={b.command}
-                    speed={b.cmdSpeed ?? 28}
-                    cursor={isActive && !cmdDone[i]}
-                    start={i === activeIdx}
-                    onDone={() =>
-                      setCmdDone((prev) => {
-                        if (prev[i]) return prev;
-                        const next = [...prev];
-                        next[i] = true;
-                        return next;
-                      })
-                    }
-                  />
-                </div>
-                {(cmdDone[i] || !isActive) && (
-                  <div>
-                    <Typewriter
-                      segments={b.output}
-                      speed={b.outSpeed ?? FAST}
-                      cursor={isActive && !outDone[i]}
-                      start={cmdDone[i]}
-                      onDone={() => {
-                        setOutDone((prev) => {
-                          if (prev[i]) return prev;
-                          const next = [...prev];
-                          next[i] = true;
-                          return next;
-                        });
-                        setActiveIdx((idx) => Math.max(idx, i + 1));
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {history.map((h) => (
-            <div key={h.id} className="mb-4">
-              <div>
-                <Prompt />
-                <span>{h.cmd}</span>
-              </div>
-              {h.output && <div className="mt-1">{h.output}</div>}
-            </div>
-          ))}
-
-          {allDone && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                runCommand(input);
-                setInput("");
-                setCaretIndex(0);
-              }}
-              className="flex items-center"
+            <div
+              className="terminal-window-bar flex shrink-0 items-center justify-between border-b border-border px-4 py-2"
+              style={{ backgroundColor: "var(--terminal-header)" }}
             >
-              <Prompt />
-              <div className="terminal-input-shell ml-2 flex-1">
-                <div className="terminal-input-mirror" aria-hidden>
-                  <span>{input.slice(0, caretIndex) || "\u200b"}</span>
-                  <span ref={mirrorMarkerRef} className="terminal-input-marker" />
-                </div>
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    setCaretIndex(e.target.selectionStart ?? e.target.value.length);
-                  }}
-                  onFocus={() => setInputFocused(true)}
-                  onBlur={() => setInputFocused(false)}
-                  onKeyUp={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
-                  onClick={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
-                  onSelect={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
-                  spellCheck={false}
-                  autoComplete="off"
-                  aria-label="terminal input"
-                  className="terminal-input-field"
-                />
-                {inputFocused && (
-                  <span
-                    className="cursor-block terminal-input-cursor"
-                    style={{ left: `${caretOffset}px` }}
-                    aria-hidden
-                  />
-                )}
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-[oklch(0.65_0.2_25)]" />
+                <span className="h-3 w-3 rounded-full bg-[oklch(0.78_0.16_85)]" />
+                <span className="h-3 w-3 rounded-full bg-[oklch(0.72_0.16_145)]" />
               </div>
-            </form>
-          )}
+              <div className="text-xs text-term-dim">— matteus@legat: ~/cv —</div>
+              <button
+                type="button"
+                onClick={cycleTheme}
+                className="hidden sm:block text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
+                aria-label={`Current theme: ${theme}. Click to switch theme.`}
+                title="Click to cycle theme"
+              >
+                {theme}
+              </button>
+            </div>
+
+            <div
+              ref={scrollRef}
+              onClick={() => {
+                if (!allDone) setSkipped(true);
+                else inputRef.current?.focus();
+              }}
+              className="terminal-window-content relative z-0 min-h-0 flex-1 overflow-y-auto p-4 text-sm leading-relaxed crt-glow sm:p-6 sm:text-[15px] md:p-8"
+            >
+              {showBanner && (
+                <div className="flex items-start flex-col mb-4 sm:gap-2 sm:flex-row">
+                  <pre
+                    className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
+                    style={{ color: "var(--term-prompt)" }}
+                  >
+                    {name}
+                  </pre>
+                  <pre
+                    className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
+                    style={{ color: "var(--term-prompt)" }}
+                  >
+                    {surname}
+                  </pre>
+                </div>
+              )}
+              {showIntro && (
+                <div className="text-term-dim mb-6 text-xs">
+                  // press enter/space to skip · type <span className="text-term-yellow">help</span>{" "}
+                  when prompt appears
+                </div>
+              )}
+
+              {blocks.map((b, i) => {
+                if (i > activeIdx) return null;
+                const isActive = i === activeIdx;
+                return (
+                  <div key={b.id} className="mb-6">
+                    <div>
+                      <Prompt />
+                      <Typewriter
+                        segments={b.command}
+                        speed={b.cmdSpeed ?? 28}
+                        cursor={isActive && !cmdDone[i]}
+                        start={i === activeIdx}
+                        onDone={() =>
+                          setCmdDone((prev) => {
+                            if (prev[i]) return prev;
+                            const next = [...prev];
+                            next[i] = true;
+                            return next;
+                          })
+                        }
+                      />
+                    </div>
+                    {(cmdDone[i] || !isActive) && (
+                      <div>
+                        <Typewriter
+                          segments={b.output}
+                          speed={b.outSpeed ?? FAST}
+                          cursor={isActive && !outDone[i]}
+                          start={cmdDone[i]}
+                          onDone={() => {
+                            setOutDone((prev) => {
+                              if (prev[i]) return prev;
+                              const next = [...prev];
+                              next[i] = true;
+                              return next;
+                            });
+                            setActiveIdx((idx) => Math.max(idx, i + 1));
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {history.map((h) => (
+                <div key={h.id} className="mb-4">
+                  <div>
+                    <Prompt />
+                    <span>{h.cmd}</span>
+                  </div>
+                  {h.output && <div className="mt-1">{h.output}</div>}
+                </div>
+              ))}
+
+              {allDone && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    runCommand(input);
+                    setInput("");
+                    setCaretIndex(0);
+                  }}
+                  className="flex items-center"
+                >
+                  <Prompt />
+                  <div className="terminal-input-shell ml-2 flex-1">
+                    <div className="terminal-input-mirror" aria-hidden>
+                      <span>{input.slice(0, caretIndex) || "\u200b"}</span>
+                      <span ref={mirrorMarkerRef} className="terminal-input-marker" />
+                    </div>
+                    <input
+                      ref={inputRef}
+                      value={input}
+                      onChange={(e) => {
+                        setInput(e.target.value);
+                        setCaretIndex(e.target.selectionStart ?? e.target.value.length);
+                      }}
+                      onFocus={() => setInputFocused(true)}
+                      onBlur={() => setInputFocused(false)}
+                      onKeyUp={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
+                      onClick={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
+                      onSelect={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
+                      spellCheck={false}
+                      autoComplete="off"
+                      aria-label="terminal input"
+                      className="terminal-input-field"
+                    />
+                    {inputFocused && (
+                      <span
+                        className="cursor-block terminal-input-cursor"
+                        style={{ left: `${caretOffset}px` }}
+                        aria-hidden
+                      />
+                    )}
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="hide-on-short-height fixed inset-x-0 bottom-5 z-10 flex flex-col gap-1 px-2 md:bottom-3 text-shadow-md text-shadow-black/50">
+          <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
+            {"matteus@legat.ml"}
+            {" · theme: "}
+            <button
+              type="button"
+              onClick={cycleTheme}
+              className="cursor-pointer text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors text-shadow-md text-shadow-black/50"
+              aria-label={`Current theme: ${theme}. Click to switch theme.`}
+              title="Click to cycle theme"
+            >
+              {theme}
+            </button>
+          </p>
+          <p className="mx-auto max-w-5xl text-center text-xs text-term-dim">
+            <a
+              href={cvPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
+            >
+              Download CV as PDF
+            </a>
+            {` · ${new Date().getFullYear()}`}
+          </p>
         </div>
       </div>
-
-      <div className="hide-on-short-height fixed inset-x-0 bottom-5 z-10 flex flex-col gap-1 px-2 md:bottom-3">
-        <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
-          {"matteus@legat.ml"}
-          {" · theme: "}
-          <button
-            type="button"
-            onClick={cycleTheme}
-            className="cursor-pointer text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
-            aria-label={`Current theme: ${theme}. Click to switch theme.`}
-            title="Click to cycle theme"
-          >
-            {theme}
-          </button>
-        </p>
-        <p className="mx-auto max-w-5xl text-center text-xs text-term-dim">
-          <a
-            href={cvPdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
-          >
-            Download CV as PDF
-          </a>
-          {` · ${new Date().getFullYear()}`}
-        </p>
-      </div>
-    </div>
+    </>
   );
 }
 
