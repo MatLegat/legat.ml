@@ -570,24 +570,24 @@
     25% {
       outline: 2px solid currentColor;
       background-color: transparent;
-      outline-offset: 2.5px;
+      outline-offset: 5px;
       opacity: 1;
     }
     50% {
       outline: 3px solid currentColor;
       background-color: transparent;
-      outline-offset: 5px;
+      outline-offset: 10px;
       opacity: 0.8;
     }
     75% {
       outline: 4px solid currentColor;
       background-color: transparent;
-      outline-offset: 7.5px;
+      outline-offset: 15px;
       opacity: 0.4;
     }
     100% {
       outline: 5px solid currentColor;
-      outline-offset: 10px;
+      outline-offset: 20px;
       opacity: 0;
     }
   }
