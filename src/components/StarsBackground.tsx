@@ -1,4 +1,10 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 const STAR_COLOR_ORDERS = [
   ["#ffffff", "#93c5fd", "#a5b4fc", "#f472b6", "#5eead4"],
@@ -21,8 +27,13 @@ type StarStyle = CSSProperties & {
 
 type StarDefinition = (typeof STARS)[number];
 
+type ExplosionPosition = {
+  left: string;
+  top: string;
+};
+
 const REPULSION_RADIUS = 250;
-const REPULSION_STRENGTH = 10;
+const REPULSION_STRENGTH = 7;
 const POINTER_LERP = 0.18;
 
 const STARS = [
@@ -358,6 +369,15 @@ const STARS = [
 
 export default function StarsBackground() {
   const starRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const explodedStarsRef = useRef<Set<number>>(new Set());
+  const [explodedStars, setExplodedStars] = useState<Set<number>>(new Set());
+  const [explosionPositions, setExplosionPositions] = useState<Map<number, ExplosionPosition>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    explodedStarsRef.current = explodedStars;
+  }, [explodedStars]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -379,7 +399,13 @@ export default function StarsBackground() {
       pointerTarget.active = false;
     };
 
-    const updateStarOffset = (element: HTMLSpanElement, star: StarDefinition) => {
+    const updateStarOffset = (element: HTMLSpanElement, star: StarDefinition, index: number) => {
+      if (explodedStarsRef.current.has(index)) {
+        element.style.setProperty("--star-offset-x", "0px");
+        element.style.setProperty("--star-offset-y", "0px");
+        return;
+      }
+
       const baseX = (Number.parseFloat(star.left) / 100) * window.innerWidth;
       const baseY = (Number.parseFloat(star.top) / 100) * window.innerHeight;
       const dx = baseX - pointerCurrent.x;
@@ -413,7 +439,7 @@ export default function StarsBackground() {
           return;
         }
 
-        updateStarOffset(element, STARS[index]);
+        updateStarOffset(element, STARS[index], index);
       });
 
       frameId = window.requestAnimationFrame(animate);
@@ -432,6 +458,20 @@ export default function StarsBackground() {
     };
   }, []);
 
+  const onStarClick = (index: number) => (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const size = Number.parseFloat(STARS[index].size);
+    const lockedLeft = `${event.clientX - size / 2}px`;
+    const lockedTop = `${event.clientY - size / 2}px`;
+
+    setExplosionPositions((prev) => {
+      const next = new Map(prev);
+      next.set(index, { left: lockedLeft, top: lockedTop });
+      return next;
+    });
+
+    setExplodedStars((prev) => new Set(prev).add(index));
+  };
+
   return (
     <div className="stars-bg" aria-hidden="true">
       {STARS.map((star, index) =>
@@ -439,6 +479,8 @@ export default function StarsBackground() {
           const colorDuration = `${9 + (index % 5) * 2}s`;
           const colorDelay = `-${(index * 3) % 11}s`;
           const colorOrder = STAR_COLOR_ORDERS[index % STAR_COLOR_ORDERS.length];
+          const exploded = explodedStars.has(index);
+          const explosionPosition = explosionPositions.get(index);
 
           return (
             <span
@@ -446,11 +488,12 @@ export default function StarsBackground() {
               ref={(element) => {
                 starRefs.current[index] = element;
               }}
-              className={`stars-bg__star stars-bg__star--${star.layer}`}
+              className={`stars-bg__star stars-bg__star--${star.layer} ${exploded ? "exploded" : ""}`}
+              onClick={onStarClick(index)}
               style={
                 {
-                  left: star.left,
-                  top: star.top,
+                  left: exploded && explosionPosition ? explosionPosition.left : star.left,
+                  top: exploded && explosionPosition ? explosionPosition.top : star.top,
                   width: star.size,
                   height: star.size,
                   animationDuration: `${star.duration}, ${colorDuration}`,

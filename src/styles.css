@@ -456,7 +456,6 @@
     inset: 0;
     width: 100vw;
     height: 100vh;
-    pointer-events: none;
     z-index: 0;
     overflow: hidden;
   }
@@ -470,9 +469,25 @@
     mix-blend-mode: screen;
     box-shadow: 0 0 10px currentColor;
     filter: drop-shadow(0 0 14px currentColor);
+    cursor: pointer;
     animation:
       star-float 16s ease-in-out infinite alternate,
       star-color-cycle 11s linear infinite;
+
+    &.exploded {
+      &:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 9999px;
+        background: currentColor;
+        opacity: 0.8;
+        animation: star-explode-ring 1s linear forwards;
+      }
+      background-color: transparent !important;
+      pointer-events: none;
+      animation: star-explode 1s ease-out forwards;
+    }
   }
 
   .stars-bg__star--far {
@@ -533,6 +548,47 @@
 
     100% {
       color: var(--star-color-1, #ffffff);
+    }
+  }
+
+  @keyframes star-explode {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes star-explode-ring {
+    0% {
+      outline: 1px solid currentColor;
+      background-color: currentColor;
+      outline-offset: 0px;
+      opacity: 1;
+    }
+    25% {
+      outline: 2px solid currentColor;
+      background-color: transparent;
+      outline-offset: 2.5px;
+      opacity: 1;
+    }
+    50% {
+      outline: 3px solid currentColor;
+      background-color: transparent;
+      outline-offset: 5px;
+      opacity: 0.8;
+    }
+    75% {
+      outline: 4px solid currentColor;
+      background-color: transparent;
+      outline-offset: 7.5px;
+      opacity: 0.4;
+    }
+    100% {
+      outline: 5px solid currentColor;
+      outline-offset: 10px;
+      opacity: 0;
     }
   }
 
