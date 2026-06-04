@@ -86,7 +86,7 @@
   --term-red: oklch(0.72 0.2 25);
   --term-dim: oklch(0.55 0.02 200);
   --term-prompt: var(--term-green);
-  --term-glow: oklch(0.82 0.18 145 / 0.35);
+  --term-glow: oklch(0.82 0.18 145 / 0.2);
   --term-glow-strong: oklch(0.82 0.18 145 / 0.6);
   --card: oklch(0.18 0.012 240);
   --card-foreground: oklch(0.92 0.02 140);
