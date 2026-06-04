@@ -25,7 +25,24 @@ type StarStyle = CSSProperties & {
   "--star-offset-y": string;
 };
 
-type StarDefinition = (typeof STARS)[number];
+type ShardStyle = CSSProperties & {
+  "--shard-color": string;
+  "--shard-delay": string;
+  "--shard-duration": string;
+  "--shard-x": string;
+  "--shard-y": string;
+};
+
+type StarLayer = "near" | "far";
+
+type StarDefinition = {
+  left: string;
+  top: string;
+  size: string;
+  duration: string;
+  delay: string;
+  layer: StarLayer;
+};
 
 type ExplosionPosition = {
   left: string;
@@ -33,344 +50,65 @@ type ExplosionPosition = {
 };
 
 const REPULSION_RADIUS = 250;
-const REPULSION_STRENGTH = 7;
+const REPULSION_STRENGTH = 5;
 const POINTER_LERP = 0.18;
+const STAR_RESPAWN_DELAY = 20000;
+const STAR_RESPAWN_FADE_DURATION = 900;
 
-const STARS = [
-  {
-    left: "6%",
-    top: "10%",
-    size: "4px",
-    duration: "14s",
-    delay: "-2s",
-    layer: "near",
-  },
-  {
-    left: "12%",
-    top: "22%",
-    size: "3px",
-    duration: "18s",
-    delay: "-6s",
-    layer: "far",
-  },
-  {
-    left: "18%",
-    top: "8%",
-    size: "5px",
-    duration: "12s",
-    delay: "-4s",
-    layer: "near",
-  },
-  {
-    left: "24%",
-    top: "30%",
-    size: "3px",
-    duration: "20s",
-    delay: "-8s",
-    layer: "far",
-  },
-  {
-    left: "31%",
-    top: "14%",
-    size: "4px",
-    duration: "16s",
-    delay: "-3s",
-    layer: "near",
-  },
-  {
-    left: "38%",
-    top: "26%",
-    size: "3px",
-    duration: "19s",
-    delay: "-10s",
-    layer: "far",
-  },
-  {
-    left: "44%",
-    top: "9%",
-    size: "5px",
-    duration: "13s",
-    delay: "-7s",
-    layer: "near",
-  },
-  {
-    left: "49%",
-    top: "34%",
-    size: "4px",
-    duration: "17s",
-    delay: "-5s",
-    layer: "far",
-  },
-  {
-    left: "56%",
-    top: "16%",
-    size: "4px",
-    duration: "15s",
-    delay: "-11s",
-    layer: "near",
-  },
-  {
-    left: "62%",
-    top: "28%",
-    size: "3px",
-    duration: "21s",
-    delay: "-1s",
-    layer: "far",
-  },
-  {
-    left: "69%",
-    top: "12%",
-    size: "5px",
-    duration: "12s",
-    delay: "-9s",
-    layer: "near",
-  },
-  {
-    left: "75%",
-    top: "24%",
-    size: "4px",
-    duration: "18s",
-    delay: "-12s",
-    layer: "far",
-  },
-  {
-    left: "82%",
-    top: "7%",
-    size: "4px",
-    duration: "14s",
-    delay: "-4s",
-    layer: "near",
-  },
-  {
-    left: "88%",
-    top: "20%",
-    size: "3px",
-    duration: "20s",
-    delay: "-13s",
-    layer: "far",
-  },
-  {
-    left: "94%",
-    top: "11%",
-    size: "5px",
-    duration: "13s",
-    delay: "-6s",
-    layer: "near",
-  },
-  {
-    left: "9%",
-    top: "38%",
-    size: "3px",
-    duration: "19s",
-    delay: "-5s",
-    layer: "far",
-  },
-  {
-    left: "21%",
-    top: "42%",
-    size: "4px",
-    duration: "16s",
-    delay: "-8s",
-    layer: "near",
-  },
-  {
-    left: "34%",
-    top: "39%",
-    size: "3px",
-    duration: "22s",
-    delay: "-2s",
-    layer: "far",
-  },
-  {
-    left: "47%",
-    top: "44%",
-    size: "5px",
-    duration: "14s",
-    delay: "-10s",
-    layer: "near",
-  },
-  {
-    left: "59%",
-    top: "40%",
-    size: "3px",
-    duration: "18s",
-    delay: "-14s",
-    layer: "far",
-  },
-  {
-    left: "71%",
-    top: "36%",
-    size: "4px",
-    duration: "15s",
-    delay: "-7s",
-    layer: "near",
-  },
-  {
-    left: "83%",
-    top: "43%",
-    size: "3px",
-    duration: "20s",
-    delay: "-3s",
-    layer: "far",
-  },
-  {
-    left: "91%",
-    top: "35%",
-    size: "4px",
-    duration: "17s",
-    delay: "-9s",
-    layer: "near",
-  },
-  {
-    left: "5%",
-    top: "56%",
-    size: "3px",
-    duration: "18s",
-    delay: "-4s",
-    layer: "far",
-  },
-  {
-    left: "14%",
-    top: "62%",
-    size: "4px",
-    duration: "15s",
-    delay: "-9s",
-    layer: "near",
-  },
-  {
-    left: "22%",
-    top: "54%",
-    size: "3px",
-    duration: "21s",
-    delay: "-6s",
-    layer: "far",
-  },
-  {
-    left: "29%",
-    top: "68%",
-    size: "5px",
-    duration: "13s",
-    delay: "-11s",
-    layer: "near",
-  },
-  {
-    left: "37%",
-    top: "58%",
-    size: "3px",
-    duration: "20s",
-    delay: "-2s",
-    layer: "far",
-  },
-  {
-    left: "45%",
-    top: "72%",
-    size: "4px",
-    duration: "16s",
-    delay: "-8s",
-    layer: "near",
-  },
-  {
-    left: "53%",
-    top: "61%",
-    size: "3px",
-    duration: "19s",
-    delay: "-12s",
-    layer: "far",
-  },
-  {
-    left: "61%",
-    top: "78%",
-    size: "5px",
-    duration: "14s",
-    delay: "-5s",
-    layer: "near",
-  },
-  {
-    left: "69%",
-    top: "57%",
-    size: "3px",
-    duration: "22s",
-    delay: "-7s",
-    layer: "far",
-  },
-  {
-    left: "76%",
-    top: "70%",
-    size: "4px",
-    duration: "17s",
-    delay: "-10s",
-    layer: "near",
-  },
-  {
-    left: "84%",
-    top: "60%",
-    size: "3px",
-    duration: "20s",
-    delay: "-3s",
-    layer: "far",
-  },
-  {
-    left: "92%",
-    top: "75%",
-    size: "4px",
-    duration: "15s",
-    delay: "-13s",
-    layer: "near",
-  },
-  {
-    left: "10%",
-    top: "86%",
-    size: "3px",
-    duration: "21s",
-    delay: "-1s",
-    layer: "far",
-  },
-  {
-    left: "26%",
-    top: "90%",
-    size: "4px",
-    duration: "16s",
-    delay: "-6s",
-    layer: "near",
-  },
-  {
-    left: "41%",
-    top: "84%",
-    size: "3px",
-    duration: "18s",
-    delay: "-9s",
-    layer: "far",
-  },
-  {
-    left: "58%",
-    top: "92%",
-    size: "5px",
-    duration: "14s",
-    delay: "-4s",
-    layer: "near",
-  },
-  {
-    left: "73%",
-    top: "87%",
-    size: "3px",
-    duration: "19s",
-    delay: "-12s",
-    layer: "far",
-  },
-  {
-    left: "89%",
-    top: "91%",
-    size: "4px",
-    duration: "15s",
-    delay: "-7s",
-    layer: "near",
-  },
-];
+const EXPLOSION_SHARDS = [
+  { x: 19, y: -30, size: 2.5, delay: 0, duration: 560 },
+  { x: 34, y: -10, size: 1.5, delay: 20, duration: 640 },
+  { x: 27, y: 21, size: 2, delay: 45, duration: 600 },
+  { x: 4, y: 34, size: 1.5, delay: 35, duration: 680 },
+  { x: -24, y: 25, size: 2.5, delay: 10, duration: 620 },
+  { x: -36, y: 1, size: 1.5, delay: 50, duration: 700 },
+  { x: -18, y: -28, size: 2, delay: 25, duration: 580 },
+  { x: 3, y: -40, size: 1.5, delay: 60, duration: 720 },
+] as const;
+
+const STAR_COUNT = 40;
+const STAR_SEED = 7349;
+
+const createSeededRandom = (seed: number) => {
+  let value = seed;
+
+  return () => {
+    value = (value * 1664525 + 1013904223) % 4294967296;
+    return value / 4294967296;
+  };
+};
+
+const randomBetween = (random: () => number, min: number, max: number) =>
+  min + random() * (max - min);
+
+const STARS: StarDefinition[] = Array.from({ length: STAR_COUNT }, (_, index) => {
+  const random = createSeededRandom(STAR_SEED + index * 97);
+  const column = index % 10;
+  const row = Math.floor(index / 10);
+  const left = column * 10 + randomBetween(random, 4, 9);
+  const top = row * 24 + randomBetween(random, 6, 18);
+  const layer: StarLayer = random() > 0.42 ? "near" : "far";
+
+  return {
+    left: left.toFixed(1) + "%",
+    top: Math.min(top, 94).toFixed(1) + "%",
+    size:
+      (layer === "near" ? randomBetween(random, 4, 5.5) : randomBetween(random, 2.5, 3.8)).toFixed(
+        1,
+      ) + "px",
+    duration: Math.round(randomBetween(random, 12, 22)) + "s",
+    delay: "-" + Math.round(randomBetween(random, 1, 14)) + "s",
+    layer,
+  };
+});
 
 export default function StarsBackground() {
   const starRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const explodedStarsRef = useRef<Set<number>>(new Set());
+  const respawnTimeoutsRef = useRef<Map<number, number>>(new Map());
+  const respawnFadeTimeoutsRef = useRef<Map<number, number>>(new Map());
   const [explodedStars, setExplodedStars] = useState<Set<number>>(new Set());
+  const [respawningStars, setRespawningStars] = useState<Set<number>>(new Set());
   const [explosionPositions, setExplosionPositions] = useState<Map<number, ExplosionPosition>>(
     new Map(),
   );
@@ -378,6 +116,18 @@ export default function StarsBackground() {
   useEffect(() => {
     explodedStarsRef.current = explodedStars;
   }, [explodedStars]);
+
+  useEffect(
+    () => () => {
+      respawnTimeoutsRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      respawnFadeTimeoutsRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -459,6 +209,23 @@ export default function StarsBackground() {
   }, []);
 
   const onStarClick = (index: number) => (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const existingTimeout = respawnTimeoutsRef.current.get(index);
+    const existingFadeTimeout = respawnFadeTimeoutsRef.current.get(index);
+
+    if (existingTimeout) {
+      window.clearTimeout(existingTimeout);
+    }
+
+    if (existingFadeTimeout) {
+      window.clearTimeout(existingFadeTimeout);
+    }
+
+    setRespawningStars((prev) => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
+
     const size = Number.parseFloat(STARS[index].size);
     const lockedLeft = `${event.clientX - size / 2}px`;
     const lockedTop = `${event.clientY - size / 2}px`;
@@ -470,6 +237,38 @@ export default function StarsBackground() {
     });
 
     setExplodedStars((prev) => new Set(prev).add(index));
+
+    const timeoutId = window.setTimeout(() => {
+      setExplodedStars((prev) => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+
+      setExplosionPositions((prev) => {
+        const next = new Map(prev);
+        next.delete(index);
+        return next;
+      });
+
+      respawnTimeoutsRef.current.delete(index);
+
+      setRespawningStars((prev) => new Set(prev).add(index));
+
+      const fadeTimeoutId = window.setTimeout(() => {
+        setRespawningStars((prev) => {
+          const next = new Set(prev);
+          next.delete(index);
+          return next;
+        });
+
+        respawnFadeTimeoutsRef.current.delete(index);
+      }, STAR_RESPAWN_FADE_DURATION);
+
+      respawnFadeTimeoutsRef.current.set(index, fadeTimeoutId);
+    }, STAR_RESPAWN_DELAY);
+
+    respawnTimeoutsRef.current.set(index, timeoutId);
   };
 
   return (
@@ -480,7 +279,9 @@ export default function StarsBackground() {
           const colorDelay = `-${(index * 3) % 11}s`;
           const colorOrder = STAR_COLOR_ORDERS[index % STAR_COLOR_ORDERS.length];
           const exploded = explodedStars.has(index);
+          const respawning = respawningStars.has(index);
           const explosionPosition = explosionPositions.get(index);
+          const shardScale = star.layer === "near" ? 1.15 : 0.9;
 
           return (
             <span
@@ -488,7 +289,7 @@ export default function StarsBackground() {
               ref={(element) => {
                 starRefs.current[index] = element;
               }}
-              className={`stars-bg__star stars-bg__star--${star.layer} ${exploded ? "exploded" : ""}`}
+              className={`stars-bg__star stars-bg__star--${star.layer} ${exploded ? "exploded" : ""} ${respawning ? "respawning" : ""}`}
               onClick={onStarClick(index)}
               style={
                 {
@@ -496,8 +297,12 @@ export default function StarsBackground() {
                   top: exploded && explosionPosition ? explosionPosition.top : star.top,
                   width: star.size,
                   height: star.size,
-                  animationDuration: `${star.duration}, ${colorDuration}`,
-                  animationDelay: `${star.delay}, ${colorDelay}`,
+                  animationDuration: respawning
+                    ? `${star.duration}, ${colorDuration}, ${STAR_RESPAWN_FADE_DURATION}ms`
+                    : `${star.duration}, ${colorDuration}`,
+                  animationDelay: respawning
+                    ? `${star.delay}, ${colorDelay}, 0ms`
+                    : `${star.delay}, ${colorDelay}`,
                   "--star-color-1": colorOrder[0],
                   "--star-color-2": colorOrder[1],
                   "--star-color-3": colorOrder[2],
@@ -507,7 +312,27 @@ export default function StarsBackground() {
                   "--star-offset-y": "0px",
                 } as StarStyle
               }
-            />
+            >
+              {exploded
+                ? EXPLOSION_SHARDS.map((shard, shardIndex) => (
+                    <span
+                      key={shardIndex}
+                      className="stars-bg__shard"
+                      style={
+                        {
+                          width: `${shard.size}px`,
+                          height: `${shard.size}px`,
+                          "--shard-color": colorOrder[shardIndex % colorOrder.length],
+                          "--shard-delay": `${shard.delay}ms`,
+                          "--shard-duration": `${shard.duration}ms`,
+                          "--shard-x": `${(shard.x * shardScale).toFixed(1)}px`,
+                          "--shard-y": `${(shard.y * shardScale).toFixed(1)}px`,
+                        } as ShardStyle
+                      }
+                    />
+                  ))
+                : null}
+            </span>
           );
         })(),
       )}
