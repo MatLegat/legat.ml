@@ -228,9 +228,21 @@ function Index() {
     setCwd(HOME);
     setInputValue("");
     historyNav.current = { index: null, draft: "" };
+    setZoomed(false);
     setLoginLine(`Last login: ${formatLoginDate(sessionStart.current ?? new Date())} on ttys000`);
     sessionStart.current = new Date();
   }
+
+  // Becomes true once the minimize/close animation has finished
+  const [hideAnimationDone, setHideAnimationDone] = useState(false);
+  useEffect(() => {
+    if (windowState === "open") {
+      setHideAnimationDone(false);
+      return;
+    }
+    const timer = setTimeout(() => setHideAnimationDone(true), reducedMotion ? 0 : 400);
+    return () => clearTimeout(timer);
+  }, [windowState, reducedMotion]);
 
   function openFromDock() {
     if (windowState === "closed") startNewSession();
@@ -339,8 +351,8 @@ function Index() {
       <StarsBackground />
       <div
         className={`terminal-page box-border h-dvh overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
-        // Full-screen layout only while the window is showing, so the footer is back when minimized
-        data-zoomed={(zoomed && windowState === "open") || undefined}
+        // Full-screen layout while the window shows and while it animates away; then the footer is back
+        data-zoomed={(zoomed && (windowState === "open" || !hideAnimationDone)) || undefined}
       >
         <div className="terminal-shell" data-state={windowState} inert={windowState !== "open"}>
           <div className="terminal-window-blur mx-auto flex terminal-frame max-w-5xl flex-col overflow-hidden rounded-md backdrop-blur-xs">
@@ -358,10 +370,7 @@ function Index() {
               >
                 <TrafficLights
                   zoomed={zoomed}
-                  onClose={() => {
-                    setWindowState("closed");
-                    setZoomed(false);
-                  }}
+                  onClose={() => setWindowState("closed")}
                   onMinimize={() => setWindowState("minimized")}
                   onZoom={() => setZoomed((z) => !z)}
                 />
