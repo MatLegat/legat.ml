@@ -1,5 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import StarsBackground from "@/components/StarsBackground";
@@ -7,7 +14,10 @@ import {
   addToHistory,
   blocks,
   commandText,
+  complete,
+  displayPath,
   FAST,
+  HOME,
   navigateHistory,
   runCommand,
   THEMES,
@@ -51,7 +61,7 @@ const PROMPT = (
   </>
 );
 
-type HistoryEntry = { id: number; cmd: string; output: ReactNode };
+type HistoryEntry = { id: number; cmd: string; output: ReactNode; path: string };
 
 function Index() {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -59,6 +69,7 @@ function Index() {
   const [outDone, setOutDone] = useState<boolean[]>(() => blocks.map(() => false));
   const [skipped, setSkipped] = useState(false);
   const [theme, setTheme] = useState<ThemeName>("green");
+  const [cwd, setCwd] = useState(HOME);
   const [showBanner, setShowBanner] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
   const [showCv, setShowCv] = useState(true);
@@ -186,20 +197,89 @@ function Index() {
 
   function pushHistory(cmd: string, output: ReactNode) {
     historyId.current += 1;
-    setHistory((h) => [...h, { id: historyId.current, cmd, output }]);
+    const path = displayPath(cwd);
+    setHistory((h) => [...h, { id: historyId.current, cmd, output, path }]);
+  }
+
+  function clearScreen() {
+    setHistory([]);
+    setShowBanner(false);
+    setShowIntro(false);
+    setShowCv(false);
+  }
+
+  function setInputValue(value: string, caret = value.length) {
+    setInput(value);
+    setCaretIndex(caret);
+    const el = inputRef.current;
+    requestAnimationFrame(() => el?.setSelectionRange(caret, caret));
   }
 
   function submitCommand(raw: string) {
-    const result = runCommand(raw, theme);
+    const result = runCommand(raw, { theme, cwd, history: cmdHistory.current });
     if (result.clear) {
-      setHistory([]);
-      setShowBanner(false);
-      setShowIntro(false);
-      setShowCv(false);
+      clearScreen();
       return;
     }
     if (result.theme) setTheme(result.theme);
     pushHistory(raw.trim(), result.output);
+    if (result.cwd) setCwd(result.cwd);
+  }
+
+  function handleShellKey(e: ReactKeyboardEvent<HTMLInputElement>) {
+    // Keys pick IME candidates while composing (e.g. Japanese input)
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+    const el = e.currentTarget;
+    // Ctrl+<letter>, by character or, on non-Latin layouts (e.g. Russian), by physical key
+    const ctrl = (letter: string) =>
+      e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      (e.key.toLowerCase() === letter ||
+        (!/^[a-z]$/i.test(e.key) && e.code === `Key${letter.toUpperCase()}`));
+
+    // Ctrl+C cancels the line, unless there's a selection to copy
+    if (ctrl("c")) {
+      const inputSelected = el.selectionStart !== el.selectionEnd;
+      if (inputSelected || window.getSelection()?.toString()) return;
+      e.preventDefault();
+      pushHistory(`${input}^C`, null);
+      historyNav.current = { index: null, draft: "" };
+      setInputValue("");
+      return;
+    }
+
+    // Ctrl+L clears the screen and keeps the line, like bash
+    if (ctrl("l")) {
+      e.preventDefault();
+      clearScreen();
+      return;
+    }
+
+    // Tab completes; on an empty line it still moves focus, so keyboard users aren't trapped
+    if (e.key === "Tab" && !e.shiftKey && input.trim()) {
+      e.preventDefault();
+      const { value, caret, options } = complete(input, cwd, el.selectionStart ?? input.length);
+      if (value !== input) setInputValue(value, caret);
+      else if (options.length > 1) {
+        pushHistory(input, <div style={{ whiteSpace: "pre-wrap" }}>{options.join("  ")}</div>);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      const moved = navigateHistory(
+        cmdHistory.current,
+        historyNav.current,
+        input,
+        e.key === "ArrowUp" ? "up" : "down",
+      );
+      if (!moved) return;
+      e.preventDefault();
+      const { value, ...nav } = moved;
+      historyNav.current = nav;
+      setInputValue(value);
+    }
   }
 
   const name = ` __  __       _   _                  
@@ -235,7 +315,7 @@ function Index() {
                 <span className="h-3 w-3 rounded-full bg-[oklch(0.78_0.16_85)]" />
                 <span className="h-3 w-3 rounded-full bg-[oklch(0.72_0.16_145)]" />
               </div>
-              <div className="text-xs text-term-dim">— matteus@legat: ~/cv —</div>
+              <div className="text-xs text-term-dim">— matteus@legat: {displayPath(cwd)} —</div>
               <button
                 type="button"
                 onClick={cycleTheme}
@@ -343,8 +423,8 @@ function Index() {
               {history.map((h) => (
                 <div key={h.id} className="mb-4">
                   <div>
-                    <Prompt />
-                    <span>{h.cmd}</span>
+                    <Prompt path={h.path} />
+                    <span style={{ whiteSpace: "pre-wrap" }}>{h.cmd}</span>
                   </div>
                   {h.output && <div className="mt-1">{h.output}</div>}
                 </div>
@@ -362,7 +442,7 @@ function Index() {
                   }}
                   className="flex items-center"
                 >
-                  <Prompt />
+                  <Prompt path={displayPath(cwd)} />
                   <div className="terminal-input-shell ml-2 flex-1">
                     <div className="terminal-input-mirror" aria-hidden>
                       <span>{input.slice(0, caretIndex) || "\u200b"}</span>
@@ -375,25 +455,7 @@ function Index() {
                         setInput(e.target.value);
                         setCaretIndex(e.target.selectionStart ?? e.target.value.length);
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
-                        // Arrows pick IME candidates while composing (e.g. Japanese input)
-                        if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-                        const moved = navigateHistory(
-                          cmdHistory.current,
-                          historyNav.current,
-                          input,
-                          e.key === "ArrowUp" ? "up" : "down",
-                        );
-                        if (!moved) return;
-                        const { value: next, ...nav } = moved;
-                        historyNav.current = nav;
-                        e.preventDefault();
-                        setInput(next);
-                        setCaretIndex(next.length);
-                        const el = e.currentTarget;
-                        requestAnimationFrame(() => el.setSelectionRange(next.length, next.length));
-                      }}
+                      onKeyDown={handleShellKey}
                       onFocus={() => setInputFocused(true)}
                       onBlur={() => setInputFocused(false)}
                       onKeyUp={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
@@ -449,12 +511,12 @@ function Index() {
   );
 }
 
-function Prompt() {
+function Prompt({ path = "~" }: { path?: string }) {
   return (
     <>
       <span style={{ color: "var(--term-prompt)" }}>matteus@legat</span>
       <span className="text-term-dim">:</span>
-      <span className="text-term-cyan">~</span>
+      <span className="text-term-cyan">{path}</span>
       <span className="text-term-dim">$ </span>
     </>
   );
