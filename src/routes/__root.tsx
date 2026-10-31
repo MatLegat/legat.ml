@@ -38,6 +38,13 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
     ],
     links: [
+      // Loaded here, not via CSS @import: Tailwind drops an @import that follows its own
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400..700&display=swap",
+      },
       {
         rel: "icon",
         type: "image/svg+xml",
