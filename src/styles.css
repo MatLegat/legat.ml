@@ -306,7 +306,8 @@
     border: 0;
     outline: none;
     background: transparent;
-    color: var(--color-foreground);
+    /* --foreground, not --color-foreground: the alias is resolved at :root and ignores theme classes */
+    color: var(--foreground);
     caret-color: transparent;
   }
 
