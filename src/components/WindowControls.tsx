@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from "react";
+import { useId, type ReactNode, type Ref } from "react";
 
 type LightProps = {
   label: string;
@@ -81,18 +81,104 @@ export function TrafficLights({ zoomed, onClose, onMinimize, onZoom }: TrafficLi
   );
 }
 
+export type Wallpaper = "stars" | "black-hole";
+
+/** Label for the wallpaper toggle, saying what it switches to. */
+function wallpaperLabel(wallpaper: Wallpaper) {
+  return wallpaper === "stars" ? "Switch to black hole wallpaper" : "Switch to star wallpaper";
+}
+
+/** A tiny black hole: dark core with a tilted glowing ring. */
+function BlackHoleGlyph({ className }: { className?: string }) {
+  // Unique per copy: the dock and the title bar can both be on the page
+  const ring = `bh-glyph-ring-${useId().replace(/[^\w-]/g, "")}`;
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id={ring} x1="0" x2="1">
+          <stop offset="0" stopColor="#ffd9a6" />
+          <stop offset="0.5" stopColor="#ff7442" />
+          <stop offset="1" stopColor="#ffd9a6" />
+        </linearGradient>
+      </defs>
+      <ellipse
+        cx="12"
+        cy="12"
+        rx="10"
+        ry="3.4"
+        transform="rotate(-14 12 12)"
+        fill="none"
+        stroke={`url(#${ring})`}
+        strokeWidth="2"
+      />
+      {/* light bent over the top of the hole: what makes it read as a black hole */}
+      <path
+        d="M5.4 12 A6.6 6.6 0 0 1 18.6 12"
+        transform="rotate(-14 12 12)"
+        fill="none"
+        stroke="#ffd9a6"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="12" r="4.4" fill="#000" stroke="#ffe2b4" strokeWidth="0.8" />
+      {/* front of the ring passes in front of the core */}
+      <path
+        d="M2.3 14.4 A10 3.4 -14 0 0 21.7 9.6"
+        fill="none"
+        stroke={`url(#${ring})`}
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+type WallpaperButtonProps = {
+  wallpaper: Wallpaper;
+  busy: boolean;
+  onToggle: () => void;
+};
+
+/** Small wallpaper toggle for the terminal's title bar. */
+export function TitleBarWallpaperButton({ wallpaper, busy, onToggle }: WallpaperButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={wallpaperLabel(wallpaper)}
+      aria-pressed={wallpaper === "black-hole"}
+      aria-disabled={busy || undefined}
+      title={wallpaperLabel(wallpaper)}
+      className={`grid h-6 w-6 cursor-pointer place-items-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[var(--term-prompt)] ${busy ? "cursor-wait" : ""}`}
+    >
+      <BlackHoleGlyph className="h-4 w-4" />
+    </button>
+  );
+}
+
+const dockTile =
+  "grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-[#3a3a3c] to-[#1c1c1e] shadow-lg transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1 group-focus-visible:ring-2 group-focus-visible:ring-[var(--term-prompt)]";
+const dockTooltip =
+  "pointer-events-none absolute -top-9 whitespace-nowrap rounded-md bg-black/70 px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100";
+
 type DockProps = {
   /** minimized: the window still exists (dot under the icon); closed: a new window opens */
   minimized: boolean;
   onOpen: () => void;
   buttonRef?: Ref<HTMLButtonElement>;
-};
+} & Omit<WallpaperButtonProps, "onToggle"> & { onToggleWallpaper: () => void };
 
-/** A one-icon dock, shown while the terminal is minimized or closed. */
-export function Dock({ minimized, onOpen, buttonRef }: DockProps) {
+/** The dock, shown while the terminal is minimized or closed: Terminal and Wallpaper. */
+export function Dock({
+  minimized,
+  onOpen,
+  buttonRef,
+  wallpaper,
+  busy,
+  onToggleWallpaper,
+}: DockProps) {
   return (
     <div className="dock fixed inset-x-0 bottom-20 z-20 flex justify-center [@media(max-height:324px)]:bottom-3">
-      <div className="rounded-2xl border border-white/10 bg-white/10 p-2 shadow-2xl backdrop-blur-md">
+      <div className="flex gap-2 rounded-2xl border border-white/10 bg-white/10 p-2 shadow-2xl backdrop-blur-md">
         <button
           ref={buttonRef}
           type="button"
@@ -100,14 +186,27 @@ export function Dock({ minimized, onOpen, buttonRef }: DockProps) {
           aria-label={minimized ? "Restore terminal" : "Open terminal"}
           className="group relative flex flex-col items-center focus-visible:outline-none"
         >
-          <span className="pointer-events-none absolute -top-9 rounded-md bg-black/70 px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-            Terminal
-          </span>
-          <span className="grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-[#3a3a3c] to-[#1c1c1e] font-mono text-sm text-[var(--term-green)] shadow-lg transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1 group-focus-visible:ring-2 group-focus-visible:ring-[var(--term-prompt)]">
-            &gt;_
-          </span>
+          <span className={dockTooltip}>Terminal</span>
+          <span className={`${dockTile} font-mono text-sm text-[var(--term-green)]`}>&gt;_</span>
           <span
             className={`mt-1 h-1 w-1 rounded-full bg-white/80 ${minimized ? "" : "invisible"}`}
+            aria-hidden="true"
+          />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleWallpaper}
+          aria-label={wallpaperLabel(wallpaper)}
+          aria-pressed={wallpaper === "black-hole"}
+          aria-disabled={busy || undefined}
+          className={`group relative flex flex-col items-center focus-visible:outline-none ${busy ? "cursor-wait" : ""}`}
+        >
+          <span className={dockTooltip}>Wallpaper</span>
+          <span className={dockTile}>
+            <BlackHoleGlyph className="h-8 w-8" />
+          </span>
+          <span
+            className={`mt-1 h-1 w-1 rounded-full bg-white/80 ${wallpaper === "black-hole" ? "" : "invisible"}`}
             aria-hidden="true"
           />
         </button>

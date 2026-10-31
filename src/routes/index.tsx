@@ -10,8 +10,14 @@ import {
 } from "react";
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
-import StarsBackground from "@/components/StarsBackground";
-import { Dock, TrafficLights } from "@/components/WindowControls";
+import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
+import {
+  Dock,
+  TitleBarWallpaperButton,
+  TrafficLights,
+  type Wallpaper,
+} from "@/components/WindowControls";
+import type { BlackHole } from "@/lib/wallpaper/black-hole";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { SITE_URL } from "@/lib/site";
 import {
@@ -82,6 +88,14 @@ function Index() {
   const [loginLine, setLoginLine] = useState<string | null>(null);
   const dockButtonRef = useRef<HTMLButtonElement>(null);
   const sessionStart = useRef<Date | null>(null);
+  const starsRef = useRef<StarsHandle>(null);
+  const [wallpaper, setWallpaper] = useState<Wallpaper>("stars");
+  const [wallpaperBusy, setWallpaperBusy] = useState(false);
+  const [wallpaperStatus, setWallpaperStatus] = useState("");
+  const wallpaperBusyRef = useRef(false);
+  const blackHoleRef = useRef<BlackHole | null>(null);
+  const [toast, setToast] = useState({ text: "", visible: false });
+  const toastTimer = useRef(0);
   const [showBanner, setShowBanner] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
   const [showCv, setShowCv] = useState(true);
@@ -244,6 +258,60 @@ function Index() {
     return () => clearTimeout(timer);
   }, [windowState, reducedMotion]);
 
+  // --- Wallpaper -------------------------------------------------------------------
+
+  function showToast(text: string) {
+    setToast({ text, visible: true });
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast((t) => ({ ...t, visible: false })), 4000);
+  }
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+
+  function setBusy(busy: boolean) {
+    wallpaperBusyRef.current = busy;
+    setWallpaperBusy(busy);
+  }
+
+  async function toggleWallpaper() {
+    const stars = starsRef.current;
+    if (wallpaperBusyRef.current || !stars?.layer) return;
+    setBusy(true);
+
+    if (wallpaper === "stars") {
+      // The effect's code and styles are downloaded only now, on first use
+      let createBlackHole: typeof import("@/lib/wallpaper/black-hole").createBlackHole;
+      try {
+        ({ createBlackHole } = await import("@/lib/wallpaper/black-hole"));
+      } catch {
+        setWallpaperStatus("Couldn't load the black hole wallpaper. Try again.");
+        setBusy(false);
+        return;
+      }
+      // The page may have gone away while downloading
+      if (starsRef.current !== stars || !stars.layer?.isConnected) return;
+      const hole = createBlackHole({ layer: stars.layer, stars: stars.takeControl() });
+      blackHoleRef.current = hole;
+      hole.consume();
+      setWallpaper("black-hole");
+      setWallpaperStatus("Black hole wallpaper on");
+      setBusy(false);
+      return;
+    }
+
+    const done = () => {
+      stars.releaseControl();
+      blackHoleRef.current = null;
+      setWallpaper("stars");
+      setWallpaperStatus("Star wallpaper on. Hint: click on any star");
+      showToast("Hint: click on any star");
+      setBusy(false);
+    };
+    if (blackHoleRef.current) blackHoleRef.current.release(done);
+    else done();
+  }
+
+  useEffect(() => () => blackHoleRef.current?.destroy(), []);
+
   function openFromDock() {
     if (windowState === "closed") startNewSession();
     setWindowState("open");
@@ -348,7 +416,17 @@ function Index() {
 
   return (
     <>
-      <StarsBackground />
+      <StarsBackground ref={starsRef} />
+      <div role="status" className="sr-only">
+        {wallpaperStatus}
+      </div>
+      {/* Visual only: screen readers get the same hint from the status line above */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none fixed left-1/2 top-2 z-30 w-max max-w-[calc(100vw-1rem)] -translate-x-1/2 rounded-md border border-white/10 bg-black/70 px-3 py-1.5 font-mono text-xs text-white/90 shadow-lg backdrop-blur-md transition duration-300 motion-reduce:transition-none ${toast.visible ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"}`}
+      >
+        {toast.text}
+      </div>
       <div
         className={`terminal-page box-border h-dvh overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
         // Full-screen layout while the window shows and while it animates away; then the footer is back
@@ -375,15 +453,22 @@ function Index() {
                   onZoom={() => setZoomed((z) => !z)}
                 />
                 <div className="text-xs text-term-dim">— matteus@legat: {displayPath(cwd)} —</div>
-                <button
-                  type="button"
-                  onClick={cycleTheme}
-                  className="hidden sm:block text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
-                  aria-label={`Current theme: ${theme}. Click to switch theme.`}
-                  title="Click to cycle theme"
-                >
-                  {theme}
-                </button>
+                <div className="flex items-center gap-3">
+                  <TitleBarWallpaperButton
+                    wallpaper={wallpaper}
+                    busy={wallpaperBusy}
+                    onToggle={() => void toggleWallpaper()}
+                  />
+                  <button
+                    type="button"
+                    onClick={cycleTheme}
+                    className="hidden sm:block text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
+                    aria-label={`Current theme: ${theme}. Click to switch theme.`}
+                    title="Click to cycle theme"
+                  >
+                    {theme}
+                  </button>
+                </div>
               </div>
 
               <div
@@ -565,6 +650,9 @@ function Index() {
             minimized={windowState === "minimized"}
             onOpen={openFromDock}
             buttonRef={dockButtonRef}
+            wallpaper={wallpaper}
+            busy={wallpaperBusy}
+            onToggleWallpaper={() => void toggleWallpaper()}
           />
         )}
 

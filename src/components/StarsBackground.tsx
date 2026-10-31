@@ -1,11 +1,25 @@
 import {
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  type Ref,
 } from "react";
+import { flushSync } from "react-dom";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import type { ControlledStar } from "@/lib/wallpaper/black-hole";
+
+/** Lets a wallpaper effect take over the stars and give them back. */
+export type StarsHandle = {
+  /** Freezes every star where it is on screen and hands it over; stops hover and clicks. */
+  takeControl(): ControlledStar[];
+  /** Clears the effect's styles and resumes the normal floating stars. */
+  releaseControl(): void;
+  /** An empty layer behind the stars for the effect's own elements. */
+  layer: HTMLDivElement | null;
+};
 
 const STAR_COLOR_ORDERS = [
   ["#ffffff", "#93c5fd", "#a5b4fc", "#f472b6", "#5eead4"],
@@ -51,7 +65,9 @@ type ExplosionPosition = {
 };
 
 const REPULSION_RADIUS = 250;
-const REPULSION_STRENGTH = 5;
+const REPULSION_STRENGTH = 3.5;
+// Within this distance the push fades out, so a star holds still under the cursor
+const REPULSION_CALM_RADIUS = 40;
 const POINTER_LERP = 0.18;
 const STAR_RESPAWN_DELAY = 20000;
 const STAR_RESPAWN_FADE_DURATION = 900;
@@ -82,17 +98,42 @@ const createSeededRandom = (seed: number) => {
 const randomBetween = (random: () => number, min: number, max: number) =>
   min + random() * (max - min);
 
-const STARS: StarDefinition[] = Array.from({ length: STAR_COUNT }, (_, index) => {
+// Where the stars go, as percentages of the screen. "Best candidate" placement: each star
+// tries a few random spots and keeps the one farthest from the stars placed so far. It looks
+// random (no grid) without clumps or big empty patches. Seeded, so server and browser agree.
+const STAR_CANDIDATES = 8;
+// Horizontal distances count more, as screens are wider than tall: spacing then looks even
+const SCREEN_ASPECT = 1.7;
+
+const STAR_POSITIONS = (() => {
+  const random = createSeededRandom(STAR_SEED);
+  const placed: { x: number; y: number }[] = [];
+  for (let i = 0; i < STAR_COUNT; i++) {
+    let best = { x: 50, y: 50 };
+    let bestDistance = -1;
+    for (let c = 0; c < STAR_CANDIDATES; c++) {
+      const candidate = { x: randomBetween(random, 2, 98), y: randomBetween(random, 3, 95) };
+      const distance = Math.min(
+        Infinity,
+        ...placed.map((p) => Math.hypot((p.x - candidate.x) * SCREEN_ASPECT, p.y - candidate.y)),
+      );
+      if (distance > bestDistance) {
+        best = candidate;
+        bestDistance = distance;
+      }
+    }
+    placed.push(best);
+  }
+  return placed;
+})();
+
+const STARS: StarDefinition[] = STAR_POSITIONS.map(({ x, y }, index) => {
   const random = createSeededRandom(STAR_SEED + index * 97);
-  const column = index % 10;
-  const row = Math.floor(index / 10);
-  const left = column * 10 + randomBetween(random, 4, 9);
-  const top = row * 24 + randomBetween(random, 6, 18);
   const layer: StarLayer = random() > 0.42 ? "near" : "far";
 
   return {
-    left: left.toFixed(1) + "%",
-    top: Math.min(top, 94).toFixed(1) + "%",
+    left: x.toFixed(1) + "%",
+    top: y.toFixed(1) + "%",
     size:
       (layer === "near" ? randomBetween(random, 4, 5.5) : randomBetween(random, 2.5, 3.8)).toFixed(
         1,
@@ -103,9 +144,15 @@ const STARS: StarDefinition[] = Array.from({ length: STAR_COUNT }, (_, index) =>
   };
 });
 
-export default function StarsBackground() {
+export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
   const reducedMotion = useReducedMotion();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const layerRef = useRef<HTMLDivElement>(null);
+  // While an effect controls the stars, repulsion and explosions are off
+  const controlledRef = useRef(false);
   const starRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  // Each star sits in a slot: effects move the slot, the star inside keeps floating
+  const slotRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const explodedStarsRef = useRef<Set<number>>(new Set());
   const respawnTimeoutsRef = useRef<Map<number, number>>(new Map());
   const respawnFadeTimeoutsRef = useRef<Map<number, number>>(new Map());
@@ -140,16 +187,26 @@ export default function StarsBackground() {
     const pointerTarget = { x: -9999, y: -9999, active: false };
     const pointerCurrent = { x: -9999, y: -9999 };
 
+    // The loop only runs while something moves: it starts on pointer activity and stops
+    // once the stars have settled, so an idle page does no per-frame work
+    let frameId = 0;
+    const wake = () => {
+      if (controlledRef.current) return;
+      if (!frameId) frameId = window.requestAnimationFrame(animate);
+    };
+
     const handlePointerMove = (event: PointerEvent) => {
       pointerTarget.x = event.clientX;
       pointerTarget.y = event.clientY;
       pointerTarget.active = true;
+      wake();
     };
 
     const resetPointer = () => {
       pointerTarget.x = -9999;
       pointerTarget.y = -9999;
       pointerTarget.active = false;
+      wake();
     };
 
     const updateStarOffset = (element: HTMLSpanElement, star: StarDefinition, index: number) => {
@@ -171,7 +228,8 @@ export default function StarsBackground() {
         return;
       }
 
-      const force = (1 - distance / REPULSION_RADIUS) ** 2;
+      const calm = Math.min(1, distance / REPULSION_CALM_RADIUS);
+      const force = (1 - distance / REPULSION_RADIUS) ** 2 * calm;
       const layerStrength = star.layer === "near" ? 1 : 0.6;
       const magnitude = force * REPULSION_STRENGTH * layerStrength;
       const offsetX = (dx / distance) * magnitude;
@@ -181,9 +239,7 @@ export default function StarsBackground() {
       element.style.setProperty("--star-offset-y", `${offsetY.toFixed(2)}px`);
     };
 
-    let frameId = 0;
-
-    const animate = () => {
+    function animate() {
       pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * POINTER_LERP;
       pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * POINTER_LERP;
 
@@ -195,8 +251,17 @@ export default function StarsBackground() {
         updateStarOffset(element, STARS[index], index);
       });
 
+      // Settled: the pointer is gone (offsets were just reset), or the eased position has
+      // caught up with a pointer that stopped moving
+      const caughtUp =
+        Math.abs(pointerTarget.x - pointerCurrent.x) < 0.5 &&
+        Math.abs(pointerTarget.y - pointerCurrent.y) < 0.5;
+      if (!pointerTarget.active || caughtUp) {
+        frameId = 0;
+        return;
+      }
       frameId = window.requestAnimationFrame(animate);
-    };
+    }
 
     // Leaving the window: `pointerout` with no element to go to (window gets no `pointerleave`)
     const handlePointerOut = (event: PointerEvent) => {
@@ -212,7 +277,6 @@ export default function StarsBackground() {
     window.addEventListener("pointerup", handlePointerEnd);
     window.addEventListener("pointercancel", resetPointer);
     window.addEventListener("blur", resetPointer);
-    frameId = window.requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
@@ -224,7 +288,62 @@ export default function StarsBackground() {
     };
   }, [reducedMotion]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      takeControl() {
+        controlledRef.current = true;
+        // No explosion or respawn may run while an effect owns the stars
+        respawnTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+        respawnFadeTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+        respawnTimeoutsRef.current.clear();
+        respawnFadeTimeoutsRef.current.clear();
+        explodedStarsRef.current = new Set();
+        flushSync(() => {
+          setExplodedStars(new Set());
+          setRespawningStars(new Set());
+          setExplosionPositions(new Map());
+        });
+        // Mouse-push offsets are cleared so they don't linger once control comes back
+        starRefs.current.forEach((el) => {
+          el?.style.setProperty("--star-offset-x", "0px");
+          el?.style.setProperty("--star-offset-y", "0px");
+        });
+        containerRef.current!.classList.add("stars-bg--controlled");
+
+        // The effect moves the slots; the stars inside keep floating and twinkling, so
+        // nothing has to stop now or restart later (which is what made stars jump)
+        const container = containerRef.current!;
+        return slotRefs.current.flatMap((el, index) => {
+          if (!el) return [];
+          const star = STARS[index];
+          const size = Number.parseFloat(star.size);
+          const home = () => ({
+            x: (Number.parseFloat(star.left) / 100) * container.clientWidth + size / 2,
+            y: (Number.parseFloat(star.top) / 100) * container.clientHeight + size / 2,
+          });
+          return [{ el, start: home(), home, opacity: 1 }];
+        });
+      },
+
+      releaseControl() {
+        slotRefs.current.forEach((el) => {
+          el?.style.removeProperty("transform");
+          el?.style.removeProperty("opacity");
+        });
+        containerRef.current?.classList.remove("stars-bg--controlled");
+        controlledRef.current = false;
+      },
+
+      get layer() {
+        return layerRef.current;
+      },
+    }),
+    [],
+  );
+
   const onStarClick = (index: number) => (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (controlledRef.current) return;
     const existingTimeout = respawnTimeoutsRef.current.get(index);
     const existingFadeTimeout = respawnFadeTimeoutsRef.current.get(index);
 
@@ -288,7 +407,8 @@ export default function StarsBackground() {
   };
 
   return (
-    <div className="stars-bg" aria-hidden="true">
+    <div ref={containerRef} className="stars-bg" aria-hidden="true">
+      <div ref={layerRef} className="stars-bg__layer" />
       {STARS.map((star, index) =>
         (() => {
           const colorDuration = `${9 + (index % 5) * 2}s`;
@@ -303,51 +423,60 @@ export default function StarsBackground() {
             <span
               key={`${star.left}-${star.top}-${index}`}
               ref={(element) => {
-                starRefs.current[index] = element;
+                slotRefs.current[index] = element;
               }}
-              className={`stars-bg__star stars-bg__star--${star.layer} ${exploded ? "exploded" : ""} ${respawning ? "respawning" : ""}`}
-              onClick={onStarClick(index)}
-              style={
-                {
-                  left: exploded && explosionPosition ? explosionPosition.left : star.left,
-                  top: exploded && explosionPosition ? explosionPosition.top : star.top,
-                  width: star.size,
-                  height: star.size,
-                  animationDuration: respawning
-                    ? `${star.duration}, ${colorDuration}, ${STAR_RESPAWN_FADE_DURATION}ms`
-                    : `${star.duration}, ${colorDuration}`,
-                  animationDelay: respawning
-                    ? `${star.delay}, ${colorDelay}, 0ms`
-                    : `${star.delay}, ${colorDelay}`,
-                  "--star-color-1": colorOrder[0],
-                  "--star-color-2": colorOrder[1],
-                  "--star-color-3": colorOrder[2],
-                  "--star-color-4": colorOrder[3],
-                  "--star-color-5": colorOrder[4],
-                  "--star-offset-x": "0px",
-                  "--star-offset-y": "0px",
-                } as StarStyle
-              }
+              className="stars-bg__slot"
+              style={{
+                left: exploded && explosionPosition ? explosionPosition.left : star.left,
+                top: exploded && explosionPosition ? explosionPosition.top : star.top,
+                width: star.size,
+                height: star.size,
+              }}
             >
-              {exploded
-                ? EXPLOSION_SHARDS.map((shard, shardIndex) => (
-                    <span
-                      key={shardIndex}
-                      className="stars-bg__shard"
-                      style={
-                        {
-                          width: `${shard.size}px`,
-                          height: `${shard.size}px`,
-                          "--shard-color": colorOrder[shardIndex % colorOrder.length],
-                          "--shard-delay": `${shard.delay}ms`,
-                          "--shard-duration": `${shard.duration}ms`,
-                          "--shard-x": `${(shard.x * shardScale).toFixed(1)}px`,
-                          "--shard-y": `${(shard.y * shardScale).toFixed(1)}px`,
-                        } as ShardStyle
-                      }
-                    />
-                  ))
-                : null}
+              <span
+                ref={(element) => {
+                  starRefs.current[index] = element;
+                }}
+                className={`stars-bg__star stars-bg__star--${star.layer} ${exploded ? "exploded" : ""} ${respawning ? "respawning" : ""}`}
+                onClick={onStarClick(index)}
+                style={
+                  {
+                    animationDuration: respawning
+                      ? `${star.duration}, ${colorDuration}, ${STAR_RESPAWN_FADE_DURATION}ms`
+                      : `${star.duration}, ${colorDuration}`,
+                    animationDelay: respawning
+                      ? `${star.delay}, ${colorDelay}, 0ms`
+                      : `${star.delay}, ${colorDelay}`,
+                    "--star-color-1": colorOrder[0],
+                    "--star-color-2": colorOrder[1],
+                    "--star-color-3": colorOrder[2],
+                    "--star-color-4": colorOrder[3],
+                    "--star-color-5": colorOrder[4],
+                    "--star-offset-x": "0px",
+                    "--star-offset-y": "0px",
+                  } as StarStyle
+                }
+              >
+                {exploded
+                  ? EXPLOSION_SHARDS.map((shard, shardIndex) => (
+                      <span
+                        key={shardIndex}
+                        className="stars-bg__shard"
+                        style={
+                          {
+                            width: `${shard.size}px`,
+                            height: `${shard.size}px`,
+                            "--shard-color": colorOrder[shardIndex % colorOrder.length],
+                            "--shard-delay": `${shard.delay}ms`,
+                            "--shard-duration": `${shard.duration}ms`,
+                            "--shard-x": `${(shard.x * shardScale).toFixed(1)}px`,
+                            "--shard-y": `${(shard.y * shardScale).toFixed(1)}px`,
+                          } as ShardStyle
+                        }
+                      />
+                    ))
+                  : null}
+              </span>
             </span>
           );
         })(),

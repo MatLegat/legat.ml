@@ -565,8 +565,15 @@
     overflow: hidden;
   }
 
+  /* Positions a star; effects like the black hole move this, not the star */
+  .stars-bg__slot {
+    position: absolute;
+    display: block;
+  }
+
   .stars-bg__star {
     position: absolute;
+    inset: 0;
     display: block;
     --star-hover-scale: 1;
     color: var(--star-color-1, #ffffff);
@@ -582,6 +589,14 @@
 
     &:hover {
       --star-hover-scale: 1.5;
+    }
+
+    /* Invisible, larger click target: stars are only a few pixels wide */
+    &:not(.exploded)::before {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: 9999px;
     }
 
     &.respawning {
@@ -635,6 +650,19 @@
     transform: translate3d(-50%, -50%, 0) scale(0.4);
     animation: star-shard-burst var(--shard-duration, 850ms) cubic-bezier(0.16, 1, 0.3, 1)
       var(--shard-delay, 0ms) forwards;
+  }
+
+  /* Wallpaper effects draw here, above the stars (stars fall behind the black hole) */
+  .stars-bg__layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* An effect owns the stars: no hover or clicks; it moves and fades the slots */
+  .stars-bg--controlled .stars-bg__star {
+    pointer-events: none;
   }
 
   .stars-bg__star--far {
