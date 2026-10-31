@@ -88,3 +88,16 @@ export function Typewriter({
     </span>
   );
 }
+
+/** Renders segments fully, without typing. */
+export function StaticOutput({ segments }: { segments: Segment[] }) {
+  return (
+    <span>
+      {segments.map((s, i) => (
+        <span key={i} className={s.className} style={{ whiteSpace: "pre-wrap" }}>
+          {s.text}
+        </span>
+      ))}
+    </span>
+  );
+}

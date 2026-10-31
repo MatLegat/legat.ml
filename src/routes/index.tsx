@@ -1,17 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
-import { Typewriter, type Segment } from "@/components/Typewriter";
+import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import StarsBackground from "@/components/StarsBackground";
+import {
+  addToHistory,
+  blocks,
+  commandText,
+  FAST,
+  navigateHistory,
+  runCommand,
+  THEMES,
+  type Block,
+  type HistoryNav,
+  type ThemeName,
+} from "@/lib/terminal";
 
-type ThemeName = "green" | "amber" | "solarized" | "solarized-light";
 const THEME_CLASS: Record<ThemeName, string> = {
   green: "",
   amber: "theme-amber",
   solarized: "theme-solarized",
   "solarized-light": "theme-solarized-light",
 };
-const THEMES: ThemeName[] = ["green", "amber", "solarized", "solarized-light"];
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -41,178 +51,6 @@ const PROMPT = (
   </>
 );
 
-type Block = {
-  id: string;
-  /** the command typed after the prompt */
-  command: Segment[];
-  /** output rendered after command finishes */
-  output: Segment[];
-  /** speed for command typing */
-  cmdSpeed?: number;
-  /** speed for output typing */
-  outSpeed?: number;
-};
-
-const FAST = 600;
-const MED = 220;
-
-const blocks: Block[] = [
-  {
-    id: "whoami",
-    command: [{ text: "whoami" }],
-    cmdSpeed: 20,
-    output: [
-      { text: "\n" },
-      { text: "Matteus Legat", className: "text-term-yellow crt-glow", speed: FAST },
-      { text: "\n" },
-      { text: "Full Stack Web Developer · Florianópolis, BR\n", className: "text-term-dim" },
-      { text: "matteus@legat.ml\n", className: "text-term-cyan" },
-    ],
-  },
-  {
-    id: "cat",
-    command: [{ text: "cat about.md" }],
-    cmdSpeed: 20,
-    output: [
-      { text: "\n" },
-      { text: "# About\n", className: "text-term-magenta", speed: FAST },
-      {
-        text:
-          "Full-stack web developer with 10+ years building and maintaining scalable\n" +
-          "web applications across ecommerce, enterprise, and platform-based products.\n" +
-          "Strong focus on modern frontend (React, Next.js) with solid backend chops\n" +
-          "in Node.js. Production-ready solutions, architecture decisions, cross-team\n" +
-          "collaboration.\n",
-        speed: FAST,
-      },
-    ],
-  },
-  {
-    id: "skills",
-    command: [{ text: "ls ./skills" }],
-    cmdSpeed: 20,
-    output: [
-      { text: "\n" },
-      { text: "frontend/  ", className: "text-term-cyan", speed: FAST },
-      { text: "backend/   ", className: "text-term-cyan", speed: FAST },
-      { text: "testing/   ", className: "text-term-cyan", speed: FAST },
-      { text: "tools/\n\n", className: "text-term-cyan", speed: FAST },
-      { text: "frontend  → ", className: "text-term-yellow", speed: FAST },
-      { text: "Next.js, React, Vue.js, Tailwind CSS, SASS, Emotion CSS\n", speed: FAST },
-      { text: "backend   → ", className: "text-term-yellow", speed: FAST },
-      { text: "Node.js, Express, Elysia, Ruby on Rails, PHP\n", speed: FAST },
-      { text: "testing   → ", className: "text-term-yellow", speed: FAST },
-      { text: "Vitest, Jest, Jasmine\n", speed: FAST },
-      { text: "tools     → ", className: "text-term-yellow", speed: FAST },
-      { text: "Git, REST APIs, Bash, MeshCentral, CI/CD, Vercel, GCP\n", speed: FAST },
-    ],
-  },
-  {
-    id: "exp",
-    command: [{ text: "git log --oneline experience" }],
-    cmdSpeed: 20,
-    output: [{ text: "\n" }, ...experienceOutput()],
-  },
-  {
-    id: "edu",
-    command: [{ text: "cat education.txt" }],
-    cmdSpeed: 20,
-    output: [
-      { text: "\n" },
-      { text: "[2014–2018] ", className: "text-term-yellow", speed: FAST },
-      { text: "Bachelor in Computer Science\n", speed: FAST },
-      {
-        text: "            Federal University of Santa Catarina — UFSC\n",
-        className: "text-term-dim",
-        speed: FAST,
-      },
-    ],
-  },
-  {
-    id: "contact",
-    command: [{ text: "./contact.sh" }],
-    cmdSpeed: 20,
-    output: [
-      { text: "\n" },
-      { text: "> ", className: "text-term-green", speed: MED },
-      { text: "Booting contact channel...\n", className: "text-term-dim", speed: MED },
-      { text: "> ", className: "text-term-green", speed: MED },
-      { text: "Channel ready.\n\n", className: "text-term-dim", speed: MED },
-      { text: "  email   ", className: "text-term-yellow", speed: FAST },
-      { text: "matteus@legat.ml\n", className: "text-term-cyan", speed: FAST },
-      { text: "  status  ", className: "text-term-yellow", speed: FAST },
-      { text: "open to opportunities\n", className: "text-term-green", speed: FAST },
-    ],
-  },
-];
-
-function experienceOutput(): Segment[] {
-  const jobs = [
-    {
-      hash: "a1f0c2e",
-      period: "2020–now",
-      role: "Full Stack Developer",
-      company: "Binamik Tecnologia",
-      bullets: [
-        "Tourism ecosystem: white-label ecommerce, kiosks, payments/booking",
-        "Scalable React + Next.js frontends, Node/Express integrations",
-        "Testing & code quality with Jest; cross-team product/design work",
-      ],
-    },
-    {
-      hash: "9d3b71a",
-      period: "2018–2020",
-      role: "Front End Developer",
-      company: "Valtech Brazil",
-      bullets: [
-        "Enterprise web apps with Vue.js + SASS",
-        "Clients: Bayer, L'Oréal, Sam's Club",
-        "Responsive, accessible, component-based systems · agile teams",
-      ],
-    },
-    {
-      hash: "5cc04e8",
-      period: "2018–2019",
-      role: "Full-Stack Web Developer (Part-time)",
-      company: "Incentiv.me",
-      bullets: ["Social crowdfunding platform", "Ruby on Rails, Mithril.js, PostgreSQL APIs"],
-    },
-    {
-      hash: "27ab9d1",
-      period: "2017–2018",
-      role: "C++ / IoT Trainee",
-      company: "LabSEC — UFSC",
-      bullets: [
-        "Modernized restaurant access control systems",
-        "RFID, secure gateways, embedded C++ + Node.js",
-      ],
-    },
-    {
-      hash: "0001a3f",
-      period: "2015–2017",
-      role: "Full-Stack Trainee",
-      company: "LabSEC — UFSC",
-      bullets: [
-        "Public Key Infrastructure platform (ICPEdu — RNP)",
-        "Digital certificate issuance · PHP (Zend) + JavaScript",
-      ],
-    },
-  ];
-
-  const segs: Segment[] = [];
-  for (const j of jobs) {
-    segs.push({ text: j.hash + " ", className: "text-term-magenta", speed: FAST });
-    segs.push({ text: `(${j.period}) `, className: "text-term-dim", speed: FAST });
-    segs.push({ text: j.role, className: "text-term-yellow", speed: FAST });
-    segs.push({ text: ` @ ${j.company}\n`, className: "text-term-cyan", speed: FAST });
-    for (const b of j.bullets) {
-      segs.push({ text: `        └─ ${b}\n`, speed: FAST });
-    }
-    segs.push({ text: "\n" });
-  }
-  return segs;
-}
-
 type HistoryEntry = { id: number; cmd: string; output: ReactNode };
 
 function Index() {
@@ -234,9 +72,8 @@ function Index() {
   const mirrorMarkerRef = useRef<HTMLSpanElement>(null);
   const historyId = useRef(0);
   // Submitted commands for ↑/↓ recall, seeded with the intro's commands. Kept across `clear`, like a shell.
-  const cmdHistory = useRef<string[]>(blocks.map((b) => b.command.map((s) => s.text).join("")));
-  const cmdHistoryIdx = useRef<number | null>(null);
-  const draftInput = useRef("");
+  const cmdHistory = useRef<string[]>(blocks.map(commandText));
+  const historyNav = useRef<HistoryNav>({ index: null, draft: "" });
   const allDoneRef = useRef(false);
 
   function scrollToBottom(behavior: ScrollBehavior = "auto") {
@@ -352,176 +189,17 @@ function Index() {
     setHistory((h) => [...h, { id: historyId.current, cmd, output }]);
   }
 
-  function runCommand(raw: string) {
-    const cmd = raw.trim();
-    if (!cmd) {
-      pushHistory("", null);
+  function submitCommand(raw: string) {
+    const result = runCommand(raw, theme);
+    if (result.clear) {
+      setHistory([]);
+      setShowBanner(false);
+      setShowIntro(false);
+      setShowCv(false);
       return;
     }
-    const [name, ...args] = cmd.split(/\s+/);
-
-    // Commands typed in the intro (e.g. `cat education.txt`, `./contact.sh`) print their block
-    const normalized = [name, ...args].join(" ");
-    const scripted = blocks.find((b) => b.command.map((s) => s.text).join("") === normalized);
-    if (scripted) {
-      pushHistory(cmd, <StaticOutput segments={scripted.output} />);
-      return;
-    }
-
-    switch (name) {
-      case "help":
-        pushHistory(
-          cmd,
-          <div className="text-sm">
-            <div>
-              <span className="text-term-yellow">help</span> list commands
-            </div>
-            <div>
-              <span className="text-term-yellow">theme</span>{" "}
-              <span className="text-term-dim">&lt;name&gt;</span> palette:{" "}
-              <span className="text-term-green">green</span> ·{" "}
-              <span className="text-term-yellow">amber</span> ·{" "}
-              <span className="text-term-cyan">solarized</span> ·{" "}
-              <span className="text-term-magenta">solarized-light</span>
-            </div>
-            <div>
-              <span className="text-term-yellow">theme</span> show current theme
-            </div>
-            <div>
-              <span className="text-term-yellow">whoami</span> ·{" "}
-              <span className="text-term-yellow">about</span> ·{" "}
-              <span className="text-term-yellow">skills</span> ·{" "}
-              <span className="text-term-yellow">experience</span> ·{" "}
-              <span className="text-term-yellow">education</span> ·{" "}
-              <span className="text-term-yellow">contact</span>
-            </div>
-            <div className="text-term-dim">
-              commands from the intro work too, e.g.{" "}
-              <span className="text-term-yellow">cat education.txt</span> ·{" "}
-              <span className="text-term-yellow">./contact.sh</span>
-            </div>
-            <div>
-              <span className="text-term-yellow">clear</span> clear the screen
-            </div>
-          </div>,
-        );
-        break;
-      case "theme": {
-        if (args.length === 0) {
-          pushHistory(
-            cmd,
-            <div className="text-sm">
-              <div>
-                current theme: <span className="text-term-yellow">{theme}</span>
-              </div>
-              <div className="text-term-dim">
-                available: green · amber · solarized · solarized-light
-              </div>
-            </div>,
-          );
-          break;
-        }
-        const t = args[0].toLowerCase() as ThemeName;
-        if (t === "green" || t === "amber" || t === "solarized" || t === "solarized-light") {
-          setTheme(t);
-          pushHistory(
-            cmd,
-            <div className="text-sm">
-              <span className="text-term-green">✓</span> theme switched to{" "}
-              <span className="text-term-yellow">{t}</span>
-            </div>,
-          );
-        } else {
-          pushHistory(
-            cmd,
-            <div className="text-sm text-term-red">
-              theme: unknown palette '{args[0]}' — try green, amber, solarized, or solarized-light
-            </div>,
-          );
-        }
-        break;
-      }
-      case "clear":
-      case "cls":
-        setHistory([]);
-        setShowBanner(false);
-        setShowIntro(false);
-        setShowCv(false);
-        break;
-      case "whoami":
-        pushHistory(cmd, <StaticOutput segments={blocks[0].output} />);
-        break;
-      case "cat":
-        if (args[0]?.replace(/^\.\//, "") === "contact.sh") {
-          pushHistory(
-            cmd,
-            <div className="text-sm">
-              <div className="text-term-red">cat: {args[0]}: Permission denied</div>
-              <div className="text-term-dim">
-                it's execute-only — try <span className="text-term-yellow">./contact.sh</span>
-              </div>
-            </div>,
-          );
-          break;
-        }
-        if (args.length > 0) {
-          pushHistory(
-            cmd,
-            <div className="text-sm text-term-red">cat: {args[0]}: No such file or directory</div>,
-          );
-          break;
-        }
-        pushHistory(cmd, <StaticOutput segments={blocks[1].output} />);
-        break;
-      case "about":
-        pushHistory(cmd, <StaticOutput segments={blocks[1].output} />);
-        break;
-      case "skills":
-        pushHistory(cmd, <StaticOutput segments={blocks[2].output} />);
-        break;
-      case "ls": {
-        const path = args.find((a) => !a.startsWith("-")) ?? ".";
-        const dir = path.replace(/^\.\//, "").replace(/\/+$/, "");
-        if (dir === "" || dir === "." || dir === "~") {
-          pushHistory(
-            cmd,
-            <div>
-              <span>about.md </span>
-              <span className="text-term-green">contact.sh* </span>
-              <span>education.txt </span>
-              <span className="text-term-cyan">skills/</span>
-            </div>,
-          );
-        } else if (dir === "skills") {
-          pushHistory(cmd, <StaticOutput segments={blocks[2].output} />);
-        } else {
-          pushHistory(
-            cmd,
-            <div className="text-sm text-term-red">
-              ls: cannot access '{path}': No such file or directory
-            </div>,
-          );
-        }
-        break;
-      }
-      case "experience":
-      case "git":
-        pushHistory(cmd, <StaticOutput segments={blocks[3].output} />);
-        break;
-      case "education":
-        pushHistory(cmd, <StaticOutput segments={blocks[4].output} />);
-        break;
-      case "contact":
-        pushHistory(cmd, <StaticOutput segments={blocks[5].output} />);
-        break;
-      default:
-        pushHistory(
-          cmd,
-          <div className="text-sm text-term-red">
-            command not found: {name} — type <span className="text-term-yellow">help</span>
-          </div>,
-        );
-    }
+    if (result.theme) setTheme(result.theme);
+    pushHistory(raw.trim(), result.output);
   }
 
   const name = ` __  __       _   _                  
@@ -676,13 +354,9 @@ function Index() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    const submitted = input.trim();
-                    if (submitted && cmdHistory.current.at(-1) !== submitted) {
-                      cmdHistory.current.push(submitted);
-                    }
-                    cmdHistoryIdx.current = null;
-                    draftInput.current = "";
-                    runCommand(input);
+                    cmdHistory.current = addToHistory(cmdHistory.current, input);
+                    historyNav.current = { index: null, draft: "" };
+                    submitCommand(input);
                     setInput("");
                     setCaretIndex(0);
                   }}
@@ -705,25 +379,15 @@ function Index() {
                         if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
                         // Arrows pick IME candidates while composing (e.g. Japanese input)
                         if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-                        const list = cmdHistory.current;
-                        const idx = cmdHistoryIdx.current;
-                        let next: string;
-                        if (e.key === "ArrowUp") {
-                          if (list.length === 0) return;
-                          if (idx === null) draftInput.current = input;
-                          cmdHistoryIdx.current =
-                            idx === null ? list.length - 1 : Math.max(0, idx - 1);
-                          next = list[cmdHistoryIdx.current];
-                        } else {
-                          if (idx === null) return;
-                          if (idx + 1 >= list.length) {
-                            cmdHistoryIdx.current = null;
-                            next = draftInput.current;
-                          } else {
-                            cmdHistoryIdx.current = idx + 1;
-                            next = list[idx + 1];
-                          }
-                        }
+                        const moved = navigateHistory(
+                          cmdHistory.current,
+                          historyNav.current,
+                          input,
+                          e.key === "ArrowUp" ? "up" : "down",
+                        );
+                        if (!moved) return;
+                        const { value: next, ...nav } = moved;
+                        historyNav.current = nav;
                         e.preventDefault();
                         setInput(next);
                         setCaretIndex(next.length);
@@ -807,17 +471,5 @@ function StaticBlock({ block }: { block: Block }) {
         <StaticOutput segments={block.output} />
       </div>
     </div>
-  );
-}
-
-function StaticOutput({ segments }: { segments: Segment[] }) {
-  return (
-    <span>
-      {segments.map((s, i) => (
-        <span key={i} className={s.className} style={{ whiteSpace: "pre-wrap" }}>
-          {s.text}
-        </span>
-      ))}
-    </span>
   );
 }
