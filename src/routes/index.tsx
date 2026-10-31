@@ -103,10 +103,29 @@ function Index() {
   allDoneRef.current = allDone;
   const introDone = allDone || skipped;
 
-  // auto-scroll
+  // Follow new output only while the reader is at (or near) the bottom, like a terminal.
+  // Scrolling up to read stops it; scrolling back down resumes it.
+  const followOutput = useRef(true);
   useEffect(() => {
-    scrollToBottom(allDone && !reducedMotion ? "smooth" : "auto");
-  }, [activeIdx, allDone, cmdDone, outDone, history, theme, reducedMotion]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      followOutput.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Intro progress and theme changes: follow only if the reader hasn't scrolled up
+  useEffect(() => {
+    if (followOutput.current) scrollToBottom(allDone && !reducedMotion ? "smooth" : "auto");
+  }, [activeIdx, allDone, cmdDone, outDone, theme, reducedMotion]);
+
+  // A command the visitor ran: always show its result
+  useEffect(() => {
+    followOutput.current = true;
+    scrollToBottom(reducedMotion ? "auto" : "smooth");
+  }, [history, reducedMotion]);
 
   // With reduced motion, show the CV right away instead of typing it out
   useEffect(() => {
@@ -118,7 +137,7 @@ function Index() {
     if (!el || allDone) return;
 
     const syncScroll = () => {
-      el.scrollTop = el.scrollHeight;
+      if (followOutput.current) el.scrollTop = el.scrollHeight;
     };
 
     const mutationObserver = new MutationObserver(syncScroll);
