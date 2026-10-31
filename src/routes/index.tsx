@@ -703,6 +703,8 @@ function Index() {
                       }}
                       onKeyDown={(e) => {
                         if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                        // Arrows pick IME candidates while composing (e.g. Japanese input)
+                        if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                         const list = cmdHistory.current;
                         const idx = cmdHistoryIdx.current;
                         let next: string;
