@@ -198,14 +198,27 @@ export default function StarsBackground() {
       frameId = window.requestAnimationFrame(animate);
     };
 
+    // Leaving the window: `pointerout` with no element to go to (window gets no `pointerleave`)
+    const handlePointerOut = (event: PointerEvent) => {
+      if (!event.relatedTarget) resetPointer();
+    };
+    // A finger lifting off has no hover, so let the stars settle back
+    const handlePointerEnd = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") resetPointer();
+    };
+
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    window.addEventListener("pointerleave", resetPointer);
+    window.addEventListener("pointerout", handlePointerOut);
+    window.addEventListener("pointerup", handlePointerEnd);
+    window.addEventListener("pointercancel", resetPointer);
     window.addEventListener("blur", resetPointer);
     frameId = window.requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerleave", resetPointer);
+      window.removeEventListener("pointerout", handlePointerOut);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", resetPointer);
       window.removeEventListener("blur", resetPointer);
       window.cancelAnimationFrame(frameId);
     };
