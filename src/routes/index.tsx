@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -169,44 +170,48 @@ function Index() {
     setTheme((current) => THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
   }
 
-  useLayoutEffect(() => {
+  // The fake cursor sits where the text before the caret ends in a hidden copy of the input,
+  // shifted by how far the input has scrolled sideways
+  const measureCaret = useCallback(() => {
     const inputEl = inputRef.current;
     const markerEl = mirrorMarkerRef.current;
+    if (!inputEl || !markerEl) return;
+    // Keep the caret in view, e.g. after the window gets narrower; scrolling re-measures
+    const caretX = markerEl.offsetLeft;
+    const cursorWidth = 10;
+    if (caretX - inputEl.scrollLeft > inputEl.clientWidth - cursorWidth) {
+      inputEl.scrollLeft = caretX - inputEl.clientWidth + cursorWidth;
+    } else if (caretX < inputEl.scrollLeft) {
+      inputEl.scrollLeft = caretX;
+    }
+    setCaretOffset(Math.max(0, caretX - inputEl.scrollLeft));
+  }, []);
 
-    if (!allDone || !inputEl || !markerEl) return;
+  useLayoutEffect(() => {
+    if (allDone) measureCaret();
+  }, [allDone, input, caretIndex, measureCaret]);
 
-    const nextOffset = Math.max(0, markerEl.offsetLeft - inputEl.scrollLeft);
-    setCaretOffset(nextOffset);
-  }, [allDone, input, caretIndex]);
-
+  // Clicks, key releases and selections update the caret index via the input's own handlers.
+  // These cover what they miss: held-down keys, sideways scrolling and resizes.
   useEffect(() => {
     const inputEl = inputRef.current;
     if (!allDone || !inputEl) return;
 
-    const syncCaret = () => {
-      setCaretIndex(inputEl.selectionStart ?? 0);
-      setCaretOffset((current) => Math.max(0, current));
-    };
+    const syncSoon = () =>
+      requestAnimationFrame(() => {
+        setCaretIndex(inputEl.selectionStart ?? 0);
+        measureCaret();
+      });
 
-    const syncCaretWithFrame = () => {
-      requestAnimationFrame(syncCaret);
-    };
-
-    syncCaret();
-    inputEl.addEventListener("keyup", syncCaret);
-    inputEl.addEventListener("click", syncCaret);
-    inputEl.addEventListener("select", syncCaret);
-    inputEl.addEventListener("scroll", syncCaret);
-    window.addEventListener("resize", syncCaretWithFrame);
-
+    inputEl.addEventListener("keydown", syncSoon);
+    inputEl.addEventListener("scroll", measureCaret);
+    window.addEventListener("resize", syncSoon);
     return () => {
-      inputEl.removeEventListener("keyup", syncCaret);
-      inputEl.removeEventListener("click", syncCaret);
-      inputEl.removeEventListener("select", syncCaret);
-      inputEl.removeEventListener("scroll", syncCaret);
-      window.removeEventListener("resize", syncCaretWithFrame);
+      inputEl.removeEventListener("keydown", syncSoon);
+      inputEl.removeEventListener("scroll", measureCaret);
+      window.removeEventListener("resize", syncSoon);
     };
-  }, [allDone]);
+  }, [allDone, measureCaret]);
 
   function pushHistory(cmd: string, output: ReactNode) {
     historyId.current += 1;
