@@ -242,6 +242,7 @@ function Index() {
 
   const allDone = activeIdx >= blocks.length;
   allDoneRef.current = allDone;
+  const introDone = allDone || skipped;
 
   // auto-scroll
   useEffect(() => {
@@ -513,7 +514,10 @@ function Index() {
               className="terminal-window-content relative z-0 min-h-0 flex-1 overflow-y-auto p-4 text-sm leading-relaxed crt-glow sm:p-6 sm:text-[15px] md:p-8"
             >
               {showBanner && (
-                <div className="flex items-start flex-col mb-4 sm:gap-2 sm:flex-row">
+                <div
+                  className="flex items-start flex-col mb-4 sm:gap-2 sm:flex-row"
+                  aria-hidden="true"
+                >
                   <pre
                     className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
                     style={{ color: "var(--term-prompt)" }}
@@ -535,50 +539,62 @@ function Index() {
                 </div>
               )}
 
-              {blocks.map((b, i) => {
-                if (i > activeIdx) return null;
-                const isActive = i === activeIdx;
-                return (
-                  <div key={b.id} className="mb-6">
-                    <div>
-                      <Prompt />
-                      <Typewriter
-                        segments={b.command}
-                        speed={b.cmdSpeed ?? 28}
-                        cursor={isActive && !cmdDone[i]}
-                        start={i === activeIdx}
-                        onDone={() =>
-                          setCmdDone((prev) => {
-                            if (prev[i]) return prev;
-                            const next = [...prev];
-                            next[i] = true;
-                            return next;
-                          })
-                        }
-                      />
-                    </div>
-                    {(cmdDone[i] || !isActive) && (
-                      <div>
-                        <Typewriter
-                          segments={b.output}
-                          speed={b.outSpeed ?? FAST}
-                          cursor={isActive && !outDone[i]}
-                          start={cmdDone[i]}
-                          onDone={() => {
-                            setOutDone((prev) => {
-                              if (prev[i]) return prev;
-                              const next = [...prev];
-                              next[i] = true;
-                              return next;
-                            });
-                            setActiveIdx((idx) => Math.max(idx, i + 1));
-                          }}
-                        />
+              {/* Full CV as plain text: in the server HTML for crawlers, read by screen readers
+                  while the animated copy types, then shown in its place once done or skipped */}
+              <div className={introDone ? undefined : "sr-only"}>
+                {blocks.map((b) => (
+                  <StaticBlock key={b.id} block={b} />
+                ))}
+              </div>
+
+              {!introDone && (
+                <div aria-hidden="true">
+                  {blocks.map((b, i) => {
+                    if (i > activeIdx) return null;
+                    const isActive = i === activeIdx;
+                    return (
+                      <div key={b.id} className="mb-6">
+                        <div>
+                          <Prompt />
+                          <Typewriter
+                            segments={b.command}
+                            speed={b.cmdSpeed ?? 28}
+                            cursor={isActive && !cmdDone[i]}
+                            start={i === activeIdx}
+                            onDone={() =>
+                              setCmdDone((prev) => {
+                                if (prev[i]) return prev;
+                                const next = [...prev];
+                                next[i] = true;
+                                return next;
+                              })
+                            }
+                          />
+                        </div>
+                        {(cmdDone[i] || !isActive) && (
+                          <div>
+                            <Typewriter
+                              segments={b.output}
+                              speed={b.outSpeed ?? FAST}
+                              cursor={isActive && !outDone[i]}
+                              start={cmdDone[i]}
+                              onDone={() => {
+                                setOutDone((prev) => {
+                                  if (prev[i]) return prev;
+                                  const next = [...prev];
+                                  next[i] = true;
+                                  return next;
+                                });
+                                setActiveIdx((idx) => Math.max(idx, i + 1));
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
 
               {history.map((h) => (
                 <div key={h.id} className="mb-4">
@@ -676,6 +692,20 @@ function Prompt() {
       <span className="text-term-cyan">~</span>
       <span className="text-term-dim">$ </span>
     </>
+  );
+}
+
+function StaticBlock({ block }: { block: Block }) {
+  return (
+    <div className="mb-6">
+      <div>
+        <Prompt />
+        <StaticOutput segments={block.command} />
+      </div>
+      <div>
+        <StaticOutput segments={block.output} />
+      </div>
+    </div>
   );
 }
 
