@@ -274,9 +274,32 @@
     color: var(--term-dim);
   }
 
+  /* Terminal height: the viewport minus padding and room for the footer */
+  .terminal-frame {
+    height: calc(100dvh - 5.25rem);
+    min-height: 16rem;
+  }
+
+  @media (min-width: 40rem) {
+    .terminal-frame {
+      height: calc(100dvh - 6rem);
+    }
+  }
+
+  /* Short screens (landscape phone, keyboard open): no footer, so the terminal takes
+     the whole height and may shrink below its usual minimum to keep the prompt visible */
   @media (max-height: 324px) {
     .hide-on-short-height {
       display: none;
+    }
+
+    .terminal-page.terminal-page {
+      padding: 0.5rem !important;
+    }
+
+    .terminal-frame {
+      height: calc(100dvh - 1rem);
+      min-height: 0;
     }
   }
 

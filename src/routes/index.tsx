@@ -343,11 +343,11 @@ function Index() {
     <>
       <StarsBackground />
       <div
-        className={`box-border h-dvh overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
+        className={`terminal-page box-border h-dvh overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
       >
-        <div className="terminal-window-blur mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[16rem] max-w-5xl flex-col overflow-hidden rounded-md backdrop-blur-xs">
+        <div className="terminal-window-blur mx-auto flex terminal-frame max-w-5xl flex-col overflow-hidden rounded-md backdrop-blur-xs">
           <div
-            className="terminal-window mx-auto flex h-[calc(100dvh-5.25rem)] sm:h-[calc(100dvh-6rem)] min-h-[16rem] w-full flex-col overflow-hidden rounded-md border border-border shadow-2xl backdrop-blur-md"
+            className="terminal-window mx-auto flex terminal-frame w-full flex-col overflow-hidden rounded-md border border-border shadow-2xl backdrop-blur-md"
             style={{ backgroundColor: "var(--terminal-bg)" }}
           >
             <div
