@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 const STAR_COLOR_ORDERS = [
   ["#ffffff", "#93c5fd", "#a5b4fc", "#f472b6", "#5eead4"],
@@ -103,6 +104,7 @@ const STARS: StarDefinition[] = Array.from({ length: STAR_COUNT }, (_, index) =>
 });
 
 export default function StarsBackground() {
+  const reducedMotion = useReducedMotion();
   const starRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const explodedStarsRef = useRef<Set<number>>(new Set());
   const respawnTimeoutsRef = useRef<Map<number, number>>(new Map());
@@ -129,8 +131,9 @@ export default function StarsBackground() {
     [],
   );
 
+  // Pointer repulsion; off with reduced motion (the stars don't float then either)
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || reducedMotion) {
       return;
     }
 
@@ -206,7 +209,7 @@ export default function StarsBackground() {
       window.removeEventListener("blur", resetPointer);
       window.cancelAnimationFrame(frameId);
     };
-  }, []);
+  }, [reducedMotion]);
 
   const onStarClick = (index: number) => (event: ReactPointerEvent<HTMLSpanElement>) => {
     const existingTimeout = respawnTimeoutsRef.current.get(index);

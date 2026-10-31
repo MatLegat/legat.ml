@@ -446,8 +446,16 @@
   @media (prefers-reduced-motion: reduce) {
     .terminal-window,
     .terminal-window-bar,
-    .terminal-window-content {
+    .terminal-window-content,
+    .terminal-window-blur,
+    .cursor-block {
       animation: none;
+    }
+
+    /* Same end state as the open animations */
+    .terminal-window,
+    .terminal-window-bar {
+      opacity: 0.825;
     }
   }
 
@@ -677,6 +685,12 @@
 
     .stars-bg__shard {
       animation: none;
+    }
+
+    .stars-bg__star.exploded::before,
+    .stars-bg__star.exploded::after {
+      animation: none;
+      opacity: 0;
     }
   }
 }

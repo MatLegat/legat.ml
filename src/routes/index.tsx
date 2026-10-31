@@ -11,6 +11,7 @@ import {
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import StarsBackground from "@/components/StarsBackground";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { SITE_URL } from "@/lib/site";
 import {
   addToHistory,
@@ -74,6 +75,7 @@ function Index() {
   const [skipped, setSkipped] = useState(false);
   const [theme, setTheme] = useState<ThemeName>("green");
   const [cwd, setCwd] = useState(HOME);
+  const reducedMotion = useReducedMotion();
   const [showBanner, setShowBanner] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
   const [showCv, setShowCv] = useState(true);
@@ -103,8 +105,13 @@ function Index() {
 
   // auto-scroll
   useEffect(() => {
-    scrollToBottom(allDone ? "smooth" : "auto");
-  }, [activeIdx, allDone, cmdDone, outDone, history, theme]);
+    scrollToBottom(allDone && !reducedMotion ? "smooth" : "auto");
+  }, [activeIdx, allDone, cmdDone, outDone, history, theme, reducedMotion]);
+
+  // With reduced motion, show the CV right away instead of typing it out
+  useEffect(() => {
+    if (reducedMotion) setSkipped(true);
+  }, [reducedMotion]);
 
   useEffect(() => {
     const el = scrollRef.current;
