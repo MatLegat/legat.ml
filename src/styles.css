@@ -274,6 +274,80 @@
     color: var(--term-dim);
   }
 
+  /* Window buttons: minimize shrinks toward the dock, close fades out */
+  .terminal-shell {
+    transform-origin: 50% 100%;
+    transition:
+      transform 300ms cubic-bezier(0.2, 0.9, 0.2, 1),
+      opacity 300ms ease-out;
+  }
+
+  .terminal-shell[data-state="minimized"] {
+    transform: translateY(30vh) scale(0.08);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      transform 380ms cubic-bezier(0.5, 0, 0.8, 0.4),
+      opacity 380ms ease-in,
+      visibility 0s 380ms;
+  }
+
+  .terminal-shell[data-state="closed"] {
+    transform: scale(0.96);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      transform 160ms ease-in,
+      opacity 160ms ease-in,
+      visibility 0s 160ms;
+  }
+
+  @keyframes dock-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  .dock {
+    animation: dock-in 250ms ease-out 120ms both;
+  }
+
+  /* Green button: the window fills the screen */
+  .terminal-page.terminal-page[data-zoomed] {
+    padding: 0 !important;
+  }
+
+  [data-zoomed] .terminal-frame {
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  [data-zoomed] .terminal-window-blur,
+  [data-zoomed] .terminal-window {
+    max-width: none;
+    border-radius: 0;
+  }
+
+  [data-zoomed] .terminal-window {
+    border-width: 0;
+  }
+
+  [data-zoomed] .hide-when-zoomed {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .terminal-shell,
+    .terminal-shell[data-state] {
+      transition: none;
+    }
+
+    .dock {
+      animation: none;
+    }
+  }
+
   /* Terminal height: the viewport minus padding and room for the footer */
   .terminal-frame {
     height: calc(100dvh - 5.25rem);
