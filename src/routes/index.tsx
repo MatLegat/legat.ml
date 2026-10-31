@@ -134,7 +134,11 @@ function Index() {
   // skip intro on key
   useEffect(() => {
     const skip = (e: KeyboardEvent) => {
-      if (allDoneRef.current) return;
+      if (allDoneRef.current || e.defaultPrevented) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Enter/Space on a link or button should activate it, not skip
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("a, button, input, textarea, select, [contenteditable]")) return;
       if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
         setSkipped(true);
       }
