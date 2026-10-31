@@ -223,6 +223,7 @@ function Index() {
   const [theme, setTheme] = useState<ThemeName>("green");
   const [showBanner, setShowBanner] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
+  const [showCv, setShowCv] = useState(true);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [input, setInput] = useState("");
   const [caretIndex, setCaretIndex] = useState(0);
@@ -232,6 +233,10 @@ function Index() {
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorMarkerRef = useRef<HTMLSpanElement>(null);
   const historyId = useRef(0);
+  // Submitted commands for ↑/↓ recall, seeded with the intro's commands. Kept across `clear`, like a shell.
+  const cmdHistory = useRef<string[]>(blocks.map((b) => b.command.map((s) => s.text).join("")));
+  const cmdHistoryIdx = useRef<number | null>(null);
+  const draftInput = useRef("");
   const allDoneRef = useRef(false);
 
   function scrollToBottom(behavior: ScrollBehavior = "auto") {
@@ -355,6 +360,14 @@ function Index() {
     }
     const [name, ...args] = cmd.split(/\s+/);
 
+    // Commands typed in the intro (e.g. `cat education.txt`, `./contact.sh`) print their block
+    const normalized = [name, ...args].join(" ");
+    const scripted = blocks.find((b) => b.command.map((s) => s.text).join("") === normalized);
+    if (scripted) {
+      pushHistory(cmd, <StaticOutput segments={scripted.output} />);
+      return;
+    }
+
     switch (name) {
       case "help":
         pushHistory(
@@ -381,6 +394,11 @@ function Index() {
               <span className="text-term-yellow">experience</span> ·{" "}
               <span className="text-term-yellow">education</span> ·{" "}
               <span className="text-term-yellow">contact</span>
+            </div>
+            <div className="text-term-dim">
+              commands from the intro work too, e.g.{" "}
+              <span className="text-term-yellow">cat education.txt</span> ·{" "}
+              <span className="text-term-yellow">./contact.sh</span>
             </div>
             <div>
               <span className="text-term-yellow">clear</span> clear the screen
@@ -428,18 +446,64 @@ function Index() {
         setHistory([]);
         setShowBanner(false);
         setShowIntro(false);
+        setShowCv(false);
         break;
       case "whoami":
         pushHistory(cmd, <StaticOutput segments={blocks[0].output} />);
         break;
-      case "about":
       case "cat":
+        if (args[0]?.replace(/^\.\//, "") === "contact.sh") {
+          pushHistory(
+            cmd,
+            <div className="text-sm">
+              <div className="text-term-red">cat: {args[0]}: Permission denied</div>
+              <div className="text-term-dim">
+                it's execute-only — try <span className="text-term-yellow">./contact.sh</span>
+              </div>
+            </div>,
+          );
+          break;
+        }
+        if (args.length > 0) {
+          pushHistory(
+            cmd,
+            <div className="text-sm text-term-red">cat: {args[0]}: No such file or directory</div>,
+          );
+          break;
+        }
+        pushHistory(cmd, <StaticOutput segments={blocks[1].output} />);
+        break;
+      case "about":
         pushHistory(cmd, <StaticOutput segments={blocks[1].output} />);
         break;
       case "skills":
-      case "ls":
         pushHistory(cmd, <StaticOutput segments={blocks[2].output} />);
         break;
+      case "ls": {
+        const path = args.find((a) => !a.startsWith("-")) ?? ".";
+        const dir = path.replace(/^\.\//, "").replace(/\/+$/, "");
+        if (dir === "" || dir === "." || dir === "~") {
+          pushHistory(
+            cmd,
+            <div>
+              <span>about.md </span>
+              <span className="text-term-green">contact.sh* </span>
+              <span>education.txt </span>
+              <span className="text-term-cyan">skills/</span>
+            </div>,
+          );
+        } else if (dir === "skills") {
+          pushHistory(cmd, <StaticOutput segments={blocks[2].output} />);
+        } else {
+          pushHistory(
+            cmd,
+            <div className="text-sm text-term-red">
+              ls: cannot access '{path}': No such file or directory
+            </div>,
+          );
+        }
+        break;
+      }
       case "experience":
       case "git":
         pushHistory(cmd, <StaticOutput segments={blocks[3].output} />);
@@ -541,11 +605,13 @@ function Index() {
 
               {/* Full CV as plain text: in the server HTML for crawlers, read by screen readers
                   while the animated copy types, then shown in its place once done or skipped */}
-              <div className={introDone ? undefined : "sr-only"}>
-                {blocks.map((b) => (
-                  <StaticBlock key={b.id} block={b} />
-                ))}
-              </div>
+              {showCv && (
+                <div className={introDone ? undefined : "sr-only"}>
+                  {blocks.map((b) => (
+                    <StaticBlock key={b.id} block={b} />
+                  ))}
+                </div>
+              )}
 
               {!introDone && (
                 <div aria-hidden="true">
@@ -610,6 +676,12 @@ function Index() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
+                    const submitted = input.trim();
+                    if (submitted && cmdHistory.current.at(-1) !== submitted) {
+                      cmdHistory.current.push(submitted);
+                    }
+                    cmdHistoryIdx.current = null;
+                    draftInput.current = "";
                     runCommand(input);
                     setInput("");
                     setCaretIndex(0);
@@ -628,6 +700,33 @@ function Index() {
                       onChange={(e) => {
                         setInput(e.target.value);
                         setCaretIndex(e.target.selectionStart ?? e.target.value.length);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                        const list = cmdHistory.current;
+                        const idx = cmdHistoryIdx.current;
+                        let next: string;
+                        if (e.key === "ArrowUp") {
+                          if (list.length === 0) return;
+                          if (idx === null) draftInput.current = input;
+                          cmdHistoryIdx.current =
+                            idx === null ? list.length - 1 : Math.max(0, idx - 1);
+                          next = list[cmdHistoryIdx.current];
+                        } else {
+                          if (idx === null) return;
+                          if (idx + 1 >= list.length) {
+                            cmdHistoryIdx.current = null;
+                            next = draftInput.current;
+                          } else {
+                            cmdHistoryIdx.current = idx + 1;
+                            next = list[idx + 1];
+                          }
+                        }
+                        e.preventDefault();
+                        setInput(next);
+                        setCaretIndex(next.length);
+                        const el = e.currentTarget;
+                        requestAnimationFrame(() => el.setSelectionRange(next.length, next.length));
                       }}
                       onFocus={() => setInputFocused(true)}
                       onBlur={() => setInputFocused(false)}
