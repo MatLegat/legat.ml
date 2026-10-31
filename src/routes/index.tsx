@@ -151,9 +151,15 @@ function Index() {
     }
   }, [skipped]);
 
+  // Focus the prompt once it appears: always after a skip (the visitor asked for it),
+  // otherwise only if nothing else has focus, so it doesn't pull them off a link or button
   useEffect(() => {
-    if (allDone) inputRef.current?.focus();
-  }, [allDone]);
+    if (!allDone) return;
+    const active = document.activeElement;
+    if (skipped || !active || active === document.body) {
+      inputRef.current?.focus({ preventScroll: true });
+    }
+  }, [allDone, skipped]);
 
   function cycleTheme() {
     setTheme((current) => THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
@@ -332,9 +338,15 @@ function Index() {
 
             <div
               ref={scrollRef}
-              onClick={() => {
-                if (!allDone) setSkipped(true);
-                else inputRef.current?.focus();
+              onClick={(e) => {
+                if (!allDone) {
+                  setSkipped(true);
+                  return;
+                }
+                // Leave focus alone after selecting text or clicking a link/button
+                if (window.getSelection()?.toString()) return;
+                if ((e.target as HTMLElement).closest("a, button")) return;
+                inputRef.current?.focus({ preventScroll: true });
               }}
               className="terminal-window-content relative z-0 min-h-0 flex-1 overflow-y-auto p-4 text-sm leading-relaxed crt-glow sm:p-6 sm:text-[15px] md:p-8"
             >
@@ -457,6 +469,8 @@ function Index() {
                       onChange={(e) => {
                         setInput(e.target.value);
                         setCaretIndex(e.target.selectionStart ?? e.target.value.length);
+                        // Focus doesn't scroll, so bring the prompt back into view when typing
+                        e.target.scrollIntoView({ block: "nearest" });
                       }}
                       onKeyDown={handleShellKey}
                       onFocus={() => setInputFocused(true)}
