@@ -9,7 +9,29 @@ export type Segment = {
   delay?: number;
   /** render text but don't animate */
   instant?: boolean;
+  /** render as a link */
+  href?: string;
 };
+
+function SegmentText({ seg, text }: { seg: Segment; text: string }) {
+  const style = { whiteSpace: "pre-wrap" } as const;
+  if (seg.href) {
+    return (
+      <a
+        href={seg.href}
+        className={`${seg.className ?? ""} underline-offset-4 hover:underline`}
+        style={style}
+      >
+        {text}
+      </a>
+    );
+  }
+  return (
+    <span className={seg.className} style={style}>
+      {text}
+    </span>
+  );
+}
 
 type Props = {
   segments: Segment[];
@@ -77,11 +99,7 @@ export function Typewriter({
         if (i < segIndex) visible = seg.text;
         else if (i === segIndex) visible = seg.text.slice(0, charIndex);
         if (!visible) return null;
-        return (
-          <span key={i} className={seg.className} style={{ whiteSpace: "pre-wrap" }}>
-            {visible}
-          </span>
-        );
+        return <SegmentText key={i} seg={seg} text={visible} />;
       })}
       {cursor && !done && <span className="cursor-block" aria-hidden />}
       {done && trailing}
@@ -94,9 +112,7 @@ export function StaticOutput({ segments }: { segments: Segment[] }) {
   return (
     <span>
       {segments.map((s, i) => (
-        <span key={i} className={s.className} style={{ whiteSpace: "pre-wrap" }}>
-          {s.text}
-        </span>
+        <SegmentText key={i} seg={s} text={s.text} />
       ))}
     </span>
   );

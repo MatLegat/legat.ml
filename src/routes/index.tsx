@@ -10,6 +10,7 @@ import {
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import StarsBackground from "@/components/StarsBackground";
+import { SITE_URL } from "@/lib/site";
 import {
   addToHistory,
   blocks,
@@ -44,11 +45,13 @@ export const Route = createFileRoute("/")({
           "Terminal-style CV of Matteus Legat — full-stack web developer with 10+ years building scalable web apps with React, Next.js, and Node.js.",
       },
       { property: "og:title", content: "matteus@legat:~ — Full Stack Developer" },
+      { property: "og:url", content: `${SITE_URL}/` },
       {
         property: "og:description",
         content: "10+ years building scalable web apps with React, Next.js, and Node.js.",
       },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/` }],
   }),
 });
 
@@ -482,7 +485,12 @@ function Index() {
 
         <div className="hide-on-short-height fixed inset-x-0 bottom-5 z-10 flex flex-col gap-1 px-2 md:bottom-3 text-shadow-md text-shadow-black/50">
           <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
-            {"matteus@legat.ml"}
+            <a
+              href="mailto:matteus@legat.ml"
+              className="text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
+            >
+              matteus@legat.ml
+            </a>
             {" · theme: "}
             <button
               type="button"

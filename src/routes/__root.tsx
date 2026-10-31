@@ -1,6 +1,8 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import faviconSvg from "../assets/favicon.svg?url";
+import portraitJpg from "../assets/matteus-portrait.jpg?url";
+import { SITE_URL } from "../lib/site";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -36,6 +38,12 @@ export const Route = createRootRoute({
       { property: "og:title", content: "Matteus Legat" },
       { property: "og:description", content: "Full Stack Web Developer" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Matteus Legat" },
+      { property: "og:image", content: `${SITE_URL}${portraitJpg}` },
+      { property: "og:image:width", content: "512" },
+      { property: "og:image:height", content: "512" },
+      { property: "og:image:alt", content: "Portrait of Matteus Legat" },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [
       // Loaded here, not via CSS @import: Tailwind drops an @import that follows its own
