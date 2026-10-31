@@ -439,15 +439,18 @@ function Index() {
                 </div>
               )}
 
-              {history.map((h) => (
-                <div key={h.id} className="mb-4">
-                  <div>
-                    <Prompt path={h.path} />
-                    <span style={{ whiteSpace: "pre-wrap" }}>{h.cmd}</span>
+              {/* New results are read out by screen readers without moving focus */}
+              <div role="log" aria-live="polite" aria-label="Command output">
+                {history.map((h) => (
+                  <div key={h.id} className="mb-4">
+                    <div>
+                      <Prompt path={h.path} />
+                      <span style={{ whiteSpace: "pre-wrap" }}>{h.cmd}</span>
+                    </div>
+                    {h.output && <div className="mt-1">{h.output}</div>}
                   </div>
-                  {h.output && <div className="mt-1">{h.output}</div>}
-                </div>
-              ))}
+                ))}
+              </div>
 
               {allDone && (
                 <form
@@ -537,14 +540,15 @@ function Index() {
   );
 }
 
+// Hidden from screen readers: repeating "matteus@legat:~$" before every line is noise
 function Prompt({ path = "~" }: { path?: string }) {
   return (
-    <>
+    <span aria-hidden="true">
       <span style={{ color: "var(--term-prompt)" }}>matteus@legat</span>
       <span className="text-term-dim">:</span>
       <span className="text-term-cyan">{path}</span>
       <span className="text-term-dim">$ </span>
-    </>
+    </span>
   );
 }
 
