@@ -16,9 +16,13 @@ export type Segment = {
 function SegmentText({ seg, text }: { seg: Segment; text: string }) {
   const style = { whiteSpace: "pre-wrap" } as const;
   if (seg.href) {
+    // Everything but email opens in a new tab, so the terminal session isn't lost
+    const newTab = !seg.href.startsWith("mailto:");
     return (
       <a
         href={seg.href}
+        target={newTab ? "_blank" : undefined}
+        rel={newTab ? "noopener noreferrer" : undefined}
         className={`${seg.className ?? ""} underline-offset-4 hover:underline`}
         style={style}
       >

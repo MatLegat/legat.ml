@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { StaticOutput, type Segment } from "@/components/Typewriter";
 
 export type ThemeName = "green" | "amber" | "solarized" | "solarized-light";
@@ -20,10 +21,18 @@ export const FAST = 600;
 const MED = 220;
 
 const SKILLS = [
-  ["frontend", "Next.js, React, Vue.js, Tailwind CSS, SASS, Emotion CSS"],
+  ["frontend", "TypeScript, Next.js, React, Vue.js, Tailwind CSS, SASS, Emotion CSS"],
   ["backend", "Node.js, Express, Elysia, Ruby on Rails, PHP"],
   ["testing", "Vitest, Jest, Jasmine"],
   ["tools", "Git, REST APIs, Bash, MeshCentral, CI/CD, Vercel, GCP"],
+] as const;
+
+// [label, text shown, link] for the contact block
+const CONTACTS = [
+  ["email", "matteus@legat.ml", "mailto:matteus@legat.ml"],
+  ["github", "github.com/matlegat", "https://github.com/matlegat"],
+  ["linkedin", "linkedin.com/in/matlegat", "https://www.linkedin.com/in/matlegat/"],
+  ["cv", "CV_MatteusLegat.pdf", cvPdfUrl],
 ] as const;
 
 export const blocks: Block[] = [
@@ -95,15 +104,12 @@ export const blocks: Block[] = [
       { text: "Booting contact channel...\n", className: "text-term-dim", speed: MED },
       { text: "> ", className: "text-term-green", speed: MED },
       { text: "Channel ready.\n\n", className: "text-term-dim", speed: MED },
-      { text: "  email   ", className: "text-term-yellow", speed: FAST },
-      {
-        text: "matteus@legat.ml",
-        className: "text-term-cyan",
-        speed: FAST,
-        href: "mailto:matteus@legat.ml",
-      },
-      { text: "\n" },
-      { text: "  status  ", className: "text-term-yellow", speed: FAST },
+      ...CONTACTS.flatMap(([label, text, href]): Segment[] => [
+        { text: `  ${label.padEnd(9)} `, className: "text-term-yellow", speed: FAST },
+        { text, className: "text-term-cyan", speed: FAST, href },
+        { text: "\n" },
+      ]),
+      { text: "  status    ", className: "text-term-yellow", speed: FAST },
       { text: "open to opportunities\n", className: "text-term-green", speed: FAST },
     ],
   },
@@ -223,14 +229,15 @@ const CONTACT_SCRIPT: Segment[] = [
   { text: "echo ", className: "text-term-cyan" },
   { text: '"> Channel ready."\n', className: "text-term-green" },
   { text: "echo\n", className: "text-term-cyan" },
-  { text: "printf ", className: "text-term-cyan" },
-  { text: '"  %-7s %s\\n" ', className: "text-term-green" },
-  { text: "email " },
-  { text: '"matteus@legat.ml"\n', className: "text-term-green" },
-  { text: "printf ", className: "text-term-cyan" },
-  { text: '"  %-7s %s\\n" ', className: "text-term-green" },
-  { text: "status " },
-  { text: '"open to opportunities"\n', className: "text-term-green" },
+  ...[
+    ...CONTACTS.map(([label, text]) => [label, text]),
+    ["status", "open to opportunities"],
+  ].flatMap(([label, text]): Segment[] => [
+    { text: "printf ", className: "text-term-cyan" },
+    { text: '"  %-9s %s\\n" ', className: "text-term-green" },
+    { text: `${label} ` },
+    { text: `"${text}"\n`, className: "text-term-green" },
+  ]),
 ];
 
 const FS: FsDir = dir({

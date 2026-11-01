@@ -15,6 +15,9 @@ describe("index page SSR", () => {
       "Federal University of Santa Catarina",
       "Vitest, Jest, Jasmine",
       "open to opportunities",
+      "github.com/matlegat",
+      "linkedin.com/in/matlegat",
+      "CV_MatteusLegat.pdf",
     ]) {
       expect(html).toContain(text);
     }

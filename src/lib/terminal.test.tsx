@@ -123,7 +123,8 @@ describe("cat", () => {
   it("prints the contact script", () => {
     const out = run("cat contact.sh");
     expect(out).toContain("#!/usr/bin/env bash");
-    expect(out).toContain('printf "  %-7s %s\\n" email "matteus@legat.ml"');
+    expect(out).toContain('printf "  %-9s %s\\n" email "matteus@legat.ml"');
+    expect(out).toContain('printf "  %-9s %s\\n" linkedin "linkedin.com/in/matlegat"');
   });
 
   it("reports directories and missing files, and keeps going", () => {
@@ -184,7 +185,7 @@ describe("ls", () => {
 
   it("lists several targets with headers", () => {
     const out = run("ls about.md skills/frontend");
-    expect(out).toMatch(/^about\.md\n+skills\/frontend:\nNext\.js, React/);
+    expect(out).toMatch(/^about\.md\n+skills\/frontend:\nTypeScript, Next\.js, React/);
   });
 
   it("reports missing paths and keeps going", () => {
