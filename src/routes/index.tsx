@@ -151,6 +151,9 @@ function Index() {
       const target = e.target as HTMLElement | null;
       if (target?.closest("a, button, input, textarea, select, [contenteditable]")) return;
       if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        // The prompt takes focus right away, so without this the same Enter submits an empty
+        // line and the same Space types into it
+        e.preventDefault();
         setSkipped(true);
       }
     };

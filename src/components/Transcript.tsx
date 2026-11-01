@@ -126,7 +126,11 @@ export function Replay({ onDone }: { onDone: () => void }) {
       if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
       const target = e.target as HTMLElement | null;
       if (target?.closest("a, button, input, textarea, select, [contenteditable]")) return;
-      if (e.key === "Enter" || e.key === " " || e.key === "Escape") setSkipped(true);
+      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        // Keeps the key from reaching the prompt once it's back (see the intro's skip)
+        e.preventDefault();
+        setSkipped(true);
+      }
     };
     // Clicks in the terminal skip it; clicks elsewhere (dock, browser) don't
     const onClick = (e: MouseEvent) => {
