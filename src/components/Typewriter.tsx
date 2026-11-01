@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export type Segment = {
   text: string;
@@ -48,6 +48,18 @@ type Props = {
   trailing?: ReactNode;
 };
 
+/** Moves past finished, empty and instant segments to the next character to type. */
+function settle(segments: Segment[], segIndex: number, charIndex: number) {
+  while (
+    segIndex < segments.length &&
+    (segments[segIndex].instant || charIndex >= segments[segIndex].text.length)
+  ) {
+    segIndex += 1;
+    charIndex = 0;
+  }
+  return { segIndex, charIndex };
+}
+
 export function Typewriter({
   segments,
   speed = 90,
@@ -57,40 +69,27 @@ export function Typewriter({
   className,
   trailing,
 }: Props) {
-  const [segIndex, setSegIndex] = useState(0);
-  const [charIndex, setCharIndex] = useState(0);
-  const [done, setDone] = useState(false);
+  // Position of the next character to type. It always points at a character still to be
+  // typed, or past the last segment once everything is shown.
+  const [{ segIndex, charIndex }, setPosition] = useState(() => settle(segments, 0, 0));
+  const done = segIndex >= segments.length;
 
+  // Report completion once
+  const reported = useRef(false);
+  useEffect(() => {
+    if (!start || !done || reported.current) return;
+    reported.current = true;
+    onDone?.();
+  }, [start, done, onDone]);
+
+  // Type the next character after this segment's speed (or its start delay)
   useEffect(() => {
     if (!start || done) return;
-    if (segIndex >= segments.length) {
-      setDone(true);
-      onDone?.();
-      return;
-    }
     const seg = segments[segIndex];
-    const charSpeed = 1000 / (seg.speed ?? speed);
-
-    if (charIndex === 0 && seg.delay) {
-      const t = setTimeout(() => setCharIndex(1), seg.delay);
-      return () => clearTimeout(t);
-    }
-
-    if (seg.instant) {
-      setSegIndex((s) => s + 1);
-      setCharIndex(0);
-      return;
-    }
-
-    if (charIndex >= seg.text.length) {
-      setSegIndex((s) => s + 1);
-      setCharIndex(0);
-      return;
-    }
-
-    const t = setTimeout(() => setCharIndex((c) => c + 1), charSpeed);
+    const wait = charIndex === 0 && seg.delay ? seg.delay : 1000 / (seg.speed ?? speed);
+    const t = setTimeout(() => setPosition(settle(segments, segIndex, charIndex + 1)), wait);
     return () => clearTimeout(t);
-  }, [start, segIndex, charIndex, done, segments, speed, onDone]);
+  }, [start, done, segments, segIndex, charIndex, speed]);
 
   return (
     <span className={className}>

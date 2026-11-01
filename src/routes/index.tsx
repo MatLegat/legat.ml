@@ -119,20 +119,18 @@ function Index() {
     el.scrollTo({ top: el.scrollHeight, behavior });
   }
 
-  const allDone = activeIdx >= blocks.length;
-  allDoneRef.current = allDone;
-  const introDone = allDone || skipped;
+  // The intro is finished once it has typed everything, was skipped, or isn't animated at all
+  const allDone = skipped || reducedMotion || activeIdx >= blocks.length;
+  const introDone = allDone;
+  useEffect(() => {
+    allDoneRef.current = allDone;
+  }, [allDone]);
 
   // Only output from commands the visitor runs scrolls into view; the intro never scrolls
   useEffect(() => {
     if (history.length === 0) return;
     scrollToBottom(reducedMotion ? "auto" : "smooth");
   }, [history, reducedMotion]);
-
-  // With reduced motion, show the CV right away instead of typing it out
-  useEffect(() => {
-    if (reducedMotion) setSkipped(true);
-  }, [reducedMotion]);
 
   // skip intro on key
   useEffect(() => {
@@ -149,14 +147,6 @@ function Index() {
     window.addEventListener("keydown", skip);
     return () => window.removeEventListener("keydown", skip);
   }, []);
-
-  useEffect(() => {
-    if (skipped) {
-      setActiveIdx(blocks.length);
-      setCmdDone(blocks.map(() => true));
-      setOutDone(blocks.map(() => true));
-    }
-  }, [skipped]);
 
   // Focus the prompt once it appears: always after a skip (the visitor asked for it),
   // otherwise only if nothing else has focus, so it doesn't pull them off a link or button
@@ -249,14 +239,18 @@ function Index() {
 
   // Becomes true once the minimize/close animation has finished
   const [hideAnimationDone, setHideAnimationDone] = useState(false);
-  useEffect(() => {
-    if (windowState === "open") {
-      setHideAnimationDone(false);
-      return;
-    }
-    const timer = setTimeout(() => setHideAnimationDone(true), reducedMotion ? 0 : 400);
-    return () => clearTimeout(timer);
-  }, [windowState, reducedMotion]);
+  const hideTimer = useRef(0);
+  useEffect(() => () => window.clearTimeout(hideTimer.current), []);
+
+  function hideWindow(state: "minimized" | "closed") {
+    setWindowState(state);
+    setHideAnimationDone(false);
+    window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(
+      () => setHideAnimationDone(true),
+      reducedMotion ? 0 : 400,
+    );
+  }
 
   // --- Wallpaper -------------------------------------------------------------------
 
@@ -313,6 +307,8 @@ function Index() {
   useEffect(() => () => blackHoleRef.current?.destroy(), []);
 
   function openFromDock() {
+    window.clearTimeout(hideTimer.current);
+    setHideAnimationDone(false);
     if (windowState === "closed") startNewSession();
     setWindowState("open");
   }
@@ -448,8 +444,8 @@ function Index() {
               >
                 <TrafficLights
                   zoomed={zoomed}
-                  onClose={() => setWindowState("closed")}
-                  onMinimize={() => setWindowState("minimized")}
+                  onClose={() => hideWindow("closed")}
+                  onMinimize={() => hideWindow("minimized")}
                   onZoom={() => setZoomed((z) => !z)}
                 />
                 <div className="text-xs text-term-dim">— matteus@legat: {displayPath(cwd)} —</div>
