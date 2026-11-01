@@ -206,7 +206,9 @@ function CompassGlyph({ className }: { className?: string }) {
   );
 }
 
-const dockDot = (on: boolean) => `mt-1 h-1 w-1 rounded-full bg-white/80 ${on ? "" : "invisible"}`;
+// The running dot sits in the dock's bottom padding, so it doesn't make that padding taller
+const dockDot = (on: boolean) =>
+  `absolute -bottom-[8px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-white/80 ${on ? "" : "invisible"}`;
 
 /** The dock at the bottom of the screen: Terminal, Browser, Wallpaper. */
 export function Dock({
@@ -227,7 +229,7 @@ export function Dock({
       className={`dock fixed inset-x-0 bottom-2 z-20 flex justify-center ${hidden ? "dock--hidden" : ""} ${terminal === "open" ? "dock--terminal-open" : ""}`}
       inert={hidden}
     >
-      <div className="flex gap-2 rounded-2xl border border-white/10 bg-white/10 p-2 shadow-2xl backdrop-blur-md">
+      <div className="flex gap-2.5 rounded-2xl border border-white/10 bg-white/10 p-2.5 shadow-2xl backdrop-blur-md">
         <button
           ref={buttonRef}
           type="button"
