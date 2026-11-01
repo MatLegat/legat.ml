@@ -178,7 +178,7 @@ type DockProps = {
   onOpenBrowser: () => void;
   browserButtonRef?: Ref<HTMLButtonElement>;
   wallpaperButtonRef?: Ref<HTMLButtonElement>;
-  /** out of the way: on-screen keyboard open, or a window is full screen */
+  /** out of the way while a window is full screen */
   hidden?: boolean;
 } & Omit<WallpaperButtonProps, "onToggle"> & { onToggleWallpaper: () => void };
 

@@ -19,7 +19,6 @@ import {
   type Wallpaper,
 } from "@/components/WindowControls";
 import type { BlackHole } from "@/lib/wallpaper/black-hole";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { SITE_URL } from "@/lib/site";
 import {
@@ -111,8 +110,6 @@ function Index() {
   const [caretIndex, setCaretIndex] = useState(0);
   const [caretOffset, setCaretOffset] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
-  // Touch screens show an on-screen keyboard while typing in the prompt
-  const touchScreen = useMediaQuery("(pointer: coarse)");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorMarkerRef = useRef<HTMLSpanElement>(null);
@@ -676,12 +673,8 @@ function Index() {
 
         <Dock
           terminal={windowState}
-          // Out of the way while the on-screen keyboard is up or a window is full screen
-          hidden={
-            (inputFocused && touchScreen) ||
-            (zoomed && windowState === "open") ||
-            (browserZoomed && browserState === "open")
-          }
+          // Out of the way only while a window is full screen
+          hidden={(zoomed && windowState === "open") || (browserZoomed && browserState === "open")}
           onOpen={openFromDock}
           buttonRef={dockButtonRef}
           browser={browserState}

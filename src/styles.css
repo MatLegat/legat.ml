@@ -364,7 +364,7 @@
       visibility 0s;
   }
 
-  /* Out of the way: on-screen keyboard open, or a window is full screen */
+  /* Out of the way while a window is full screen */
   .dock--hidden {
     opacity: 0;
     transform: translateY(16px);
