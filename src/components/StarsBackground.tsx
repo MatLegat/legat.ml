@@ -83,7 +83,7 @@ const EXPLOSION_SHARDS = [
   { x: 3, y: -40, size: 1.5, delay: 60, duration: 720 },
 ] as const;
 
-const STAR_COUNT = 40;
+const STAR_COUNT = 30;
 const STAR_SEED = 7349;
 
 const createSeededRandom = (seed: number) => {
