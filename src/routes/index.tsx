@@ -1,14 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrowserWindow, type BrowserHandle, type WindowState } from "@/components/BrowserWindow";
+import { CommandLine, type CommandLineHandle } from "@/components/CommandLine";
 import { Prompt, Replay, Transcript } from "@/components/Transcript";
 import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
 import { Dock, TrafficLights, type Wallpaper } from "@/components/WindowControls";
@@ -103,17 +96,13 @@ function Index() {
   const [showIntro, setShowIntro] = useState(true);
   const [showCv, setShowCv] = useState(true);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [input, setInput] = useState("");
-  const [caretIndex, setCaretIndex] = useState(0);
-  const [caretOffset, setCaretOffset] = useState(0);
-  const [inputFocused, setInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Dragging the terminal by its title bar (desktop only)
   const terminalShellRef = useRef<HTMLDivElement>(null);
   const terminalFrameRef = useRef<HTMLDivElement>(null);
   const terminalBarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const mirrorMarkerRef = useRef<HTMLSpanElement>(null);
+  const commandLineRef = useRef<CommandLineHandle>(null);
   const historyId = useRef(0);
   // Submitted commands for ↑/↓ recall, seeded with the intro's commands. Kept across `clear`, like a shell.
   const cmdHistory = useRef<string[]>(blocks.map(commandText));
@@ -191,49 +180,6 @@ function Index() {
     setTheme((current) => THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
   }
 
-  // The fake cursor sits where the text before the caret ends in a hidden copy of the input,
-  // shifted by how far the input has scrolled sideways
-  const measureCaret = useCallback(() => {
-    const inputEl = inputRef.current;
-    const markerEl = mirrorMarkerRef.current;
-    if (!inputEl || !markerEl) return;
-    // Keep the caret in view, e.g. after the window gets narrower; scrolling re-measures
-    const caretX = markerEl.offsetLeft;
-    const cursorWidth = 10;
-    if (caretX - inputEl.scrollLeft > inputEl.clientWidth - cursorWidth) {
-      inputEl.scrollLeft = caretX - inputEl.clientWidth + cursorWidth;
-    } else if (caretX < inputEl.scrollLeft) {
-      inputEl.scrollLeft = caretX;
-    }
-    setCaretOffset(Math.max(0, caretX - inputEl.scrollLeft));
-  }, []);
-
-  useLayoutEffect(() => {
-    if (allDone) measureCaret();
-  }, [allDone, input, caretIndex, measureCaret]);
-
-  // Clicks, key releases and selections update the caret index via the input's own handlers.
-  // These cover what they miss: held-down keys, sideways scrolling and resizes.
-  useEffect(() => {
-    const inputEl = inputRef.current;
-    if (!allDone || !inputEl) return;
-
-    const syncSoon = () =>
-      requestAnimationFrame(() => {
-        setCaretIndex(inputEl.selectionStart ?? 0);
-        measureCaret();
-      });
-
-    inputEl.addEventListener("keydown", syncSoon);
-    inputEl.addEventListener("scroll", measureCaret);
-    window.addEventListener("resize", syncSoon);
-    return () => {
-      inputEl.removeEventListener("keydown", syncSoon);
-      inputEl.removeEventListener("scroll", measureCaret);
-      window.removeEventListener("resize", syncSoon);
-    };
-  }, [allDone, measureCaret]);
-
   function pushHistory(cmd: string, output: ReactNode, path = displayPath(cwd)) {
     // Taken now: the update below runs later, after any other entries pushed in the same go
     const id = ++historyId.current;
@@ -259,7 +205,7 @@ function Index() {
     clearScreen();
     setSkipped(true);
     setCwd(HOME);
-    setInputValue("");
+    commandLineRef.current?.setValue("");
     historyNav.current = { index: null, draft: "" };
     setZoomed(false);
     setLoginLine(`Last login: ${formatLoginDate(sessionStart.current ?? new Date())} on ttys000`);
@@ -395,13 +341,6 @@ function Index() {
     else dockButtonRef.current?.focus();
   }, [windowState]);
 
-  function setInputValue(value: string, caret = value.length) {
-    setInput(value);
-    setCaretIndex(caret);
-    const el = inputRef.current;
-    requestAnimationFrame(() => el?.setSelectionRange(caret, caret));
-  }
-
   function submitCommand(raw: string) {
     const result = runCommand(raw, { theme, cwd, history: cmdHistory.current });
     if (result.clear) {
@@ -418,60 +357,34 @@ function Index() {
     if (result.cwd) setCwd(result.cwd);
   }
 
-  function handleShellKey(e: ReactKeyboardEvent<HTMLInputElement>) {
-    // Keys pick IME candidates while composing (e.g. Japanese input)
-    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-    const el = e.currentTarget;
-    // Ctrl+<letter>, by character or, on non-Latin layouts (e.g. Russian), by physical key
-    const ctrl = (letter: string) =>
-      e.ctrlKey &&
-      !e.metaKey &&
-      !e.altKey &&
-      (e.key.toLowerCase() === letter ||
-        (!/^[a-z]$/i.test(e.key) && e.code === `Key${letter.toUpperCase()}`));
+  // --- Prompt: the line itself lives in CommandLine, so typing doesn't re-render the page --
 
-    // Ctrl+C cancels the line, unless there's a selection to copy
-    if (ctrl("c")) {
-      const inputSelected = el.selectionStart !== el.selectionEnd;
-      if (inputSelected || window.getSelection()?.toString()) return;
-      e.preventDefault();
-      pushHistory(`${input}^C`, null);
-      historyNav.current = { index: null, draft: "" };
-      setInputValue("");
-      return;
-    }
+  function onSubmitLine(line: string) {
+    cmdHistory.current = addToHistory(cmdHistory.current, line);
+    historyNav.current = { index: null, draft: "" };
+    submitCommand(line);
+  }
 
-    // Ctrl+L clears the screen and keeps the line, like bash
-    if (ctrl("l")) {
-      e.preventDefault();
-      clearScreen();
-      return;
-    }
+  function onCancelLine(line: string) {
+    pushHistory(`${line}^C`, null);
+    historyNav.current = { index: null, draft: "" };
+  }
 
-    // Tab completes; on an empty line it still moves focus, so keyboard users aren't trapped
-    if (e.key === "Tab" && !e.shiftKey && input.trim()) {
-      e.preventDefault();
-      const { value, caret, options } = complete(input, cwd, el.selectionStart ?? input.length);
-      if (value !== input) setInputValue(value, caret);
-      else if (options.length > 1) {
-        pushHistory(input, <div style={{ whiteSpace: "pre-wrap" }}>{options.join("  ")}</div>);
-      }
-      return;
+  function onCompleteLine(line: string, caretAt: number) {
+    const { value, caret, options } = complete(line, cwd, caretAt);
+    if (value !== line) return { value, caret };
+    if (options.length > 1) {
+      pushHistory(line, <div style={{ whiteSpace: "pre-wrap" }}>{options.join("  ")}</div>);
     }
+    return null;
+  }
 
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      const moved = navigateHistory(
-        cmdHistory.current,
-        historyNav.current,
-        input,
-        e.key === "ArrowUp" ? "up" : "down",
-      );
-      if (!moved) return;
-      e.preventDefault();
-      const { value, ...nav } = moved;
-      historyNav.current = nav;
-      setInputValue(value);
-    }
+  function onHistoryKey(direction: "up" | "down", line: string) {
+    const moved = navigateHistory(cmdHistory.current, historyNav.current, line, direction);
+    if (!moved) return null;
+    const { value, ...nav } = moved;
+    historyNav.current = nav;
+    return value;
   }
 
   const name = ` __  __       _   _                  
@@ -630,56 +543,17 @@ function Index() {
                 </div>
 
                 {allDone && (
-                  <form
+                  <CommandLine
+                    ref={commandLineRef}
+                    inputRef={inputRef}
+                    path={displayPath(cwd)}
                     hidden={replaying}
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      cmdHistory.current = addToHistory(cmdHistory.current, input);
-                      historyNav.current = { index: null, draft: "" };
-                      submitCommand(input);
-                      setInput("");
-                      setCaretIndex(0);
-                    }}
-                    className="flex items-center"
-                  >
-                    <Prompt path={displayPath(cwd)} />
-                    <div className="terminal-input-shell ml-2 flex-1">
-                      <div className="terminal-input-mirror" aria-hidden>
-                        <span>{input.slice(0, caretIndex) || "\u200b"}</span>
-                        <span ref={mirrorMarkerRef} className="terminal-input-marker" />
-                      </div>
-                      <input
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => {
-                          setInput(e.target.value);
-                          setCaretIndex(e.target.selectionStart ?? e.target.value.length);
-                          // Focus doesn't scroll, so bring the prompt back into view when typing
-                          e.target.scrollIntoView({ block: "nearest" });
-                        }}
-                        onKeyDown={handleShellKey}
-                        onFocus={() => setInputFocused(true)}
-                        onBlur={() => setInputFocused(false)}
-                        onKeyUp={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
-                        onClick={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
-                        onSelect={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
-                        // Commands are lowercase: no auto-capitalizing or correcting on phones
-                        spellCheck={false}
-                        autoComplete="off"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        aria-label="terminal input"
-                        className="terminal-input-field"
-                      />
-                      {inputFocused && (
-                        <span
-                          className="cursor-block terminal-input-cursor"
-                          style={{ left: `${caretOffset}px` }}
-                          aria-hidden
-                        />
-                      )}
-                    </div>
-                  </form>
+                    onSubmit={onSubmitLine}
+                    onCancel={onCancelLine}
+                    onClearScreen={clearScreen}
+                    onComplete={onCompleteLine}
+                    onHistory={onHistoryKey}
+                  />
                 )}
               </div>
             </div>
