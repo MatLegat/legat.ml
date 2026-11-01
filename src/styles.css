@@ -559,8 +559,11 @@
   .stars-bg {
     position: fixed;
     inset: 0;
-    width: 100vw;
+    width: 100%;
+    /* The visible height (dvh), like the rest of the page. 100vh is taller than the screen
+       on phones while the browser bars show, which put the black hole below the center. */
     height: 100vh;
+    height: 100dvh;
     z-index: 0;
     overflow: hidden;
   }
