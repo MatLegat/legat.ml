@@ -303,6 +303,8 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
         respawnFadeTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
         respawnTimeoutsRef.current.clear();
         respawnFadeTimeoutsRef.current.clear();
+        // Stars blown up by a click stay gone: the effect gets them as already swallowed
+        const exploded = new Set(explodedStarsRef.current);
         explodedStarsRef.current = new Set();
         flushSync(() => {
           setExplodedStars(new Set());
@@ -327,7 +329,7 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
             x: (Number.parseFloat(star.left) / 100) * container.clientWidth + size / 2,
             y: (Number.parseFloat(star.top) / 100) * container.clientHeight + size / 2,
           });
-          return [{ el, start: home(), home, opacity: 1 }];
+          return [{ el, start: home(), home, opacity: 1, hidden: exploded.has(index) }];
         });
       },
 

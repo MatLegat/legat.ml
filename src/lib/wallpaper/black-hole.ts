@@ -12,6 +12,8 @@ export type ControlledStar = {
   home: () => Point;
   /** opacity to return to */
   opacity: number;
+  /** already gone (exploded by a click): starts out swallowed, not pulled in */
+  hidden: boolean;
 };
 
 export type BlackHole = {
@@ -334,6 +336,11 @@ export function createBlackHole({
         return;
       }
       bodies.forEach((body) => {
+        if (body.star.hidden) {
+          body.mode = "absorbed";
+          body.star.el.style.opacity = "0";
+          return;
+        }
         const reach = body.from.r / maxR;
         body.mode = "infall";
         body.fadeIn = false;

@@ -453,7 +453,11 @@ function Index() {
                   <TitleBarWallpaperButton
                     wallpaper={wallpaper}
                     busy={wallpaperBusy}
-                    onToggle={() => void toggleWallpaper()}
+                    // Minimized, so the black hole and the explosion aren't behind the window
+                    onToggle={() => {
+                      hideWindow("minimized");
+                      void toggleWallpaper();
+                    }}
                   />
                   <button
                     type="button"
