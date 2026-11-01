@@ -73,11 +73,30 @@ export const Route = createRootRoute({
   notFoundComponent: NotFoundComponent,
 });
 
+const NO_SCRIPT_CSS = `
+.transcript-plain.sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
+}
+.intro-hint { display: none; }
+`;
+
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Without JavaScript nothing types the CV out: show its plain copy instead, and drop
+            the hint about skipping and typing */}
+        <noscript>
+          <style>{NO_SCRIPT_CSS}</style>
+        </noscript>
       </head>
       <body>
         {children}

@@ -65,7 +65,7 @@ export function Transcript({ blocks, skipped, onDone }: TranscriptProps) {
 
   return (
     <>
-      <div className={finished ? undefined : "sr-only"}>
+      <div className={finished ? "transcript-plain" : "transcript-plain sr-only"}>
         {blocks.map((b) => (
           <StaticBlock key={b.id} block={b} />
         ))}

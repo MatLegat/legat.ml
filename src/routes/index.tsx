@@ -519,7 +519,7 @@ function Index() {
                   </div>
                 )}
                 {showIntro && (
-                  <div className="text-term-dim mb-6 text-xs">
+                  <div className="intro-hint text-term-dim mb-6 text-xs">
                     // press enter/space to skip · type{" "}
                     <span className="text-term-yellow">help</span> when prompt appears
                   </div>
