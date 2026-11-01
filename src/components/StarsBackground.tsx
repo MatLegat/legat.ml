@@ -212,8 +212,10 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
         return;
       }
 
-      const baseX = (Number.parseFloat(star.left) / 100) * window.innerWidth;
-      const baseY = (Number.parseFloat(star.top) / 100) * window.innerHeight;
+      // Stars are placed within the wallpaper, which can be taller than the window
+      const container = containerRef.current;
+      const baseX = (Number.parseFloat(star.left) / 100) * (container?.clientWidth ?? 0);
+      const baseY = (Number.parseFloat(star.top) / 100) * (container?.clientHeight ?? 0);
       const dx = baseX - pointerCurrent.x;
       const dy = baseY - pointerCurrent.y;
       const distance = Math.hypot(dx, dy);
