@@ -277,6 +277,11 @@ describe("other commands", () => {
     expect(run("theme pink")).toContain("unknown palette 'pink'");
   });
 
+  it("replay asks to run the intro again", () => {
+    expect(runCommand("replay", ctx())).toEqual({ output: null, replay: true });
+    expect(complete("rep", HOME).value).toBe("replay ");
+  });
+
   it("clear wipes the screen", () => {
     expect(runCommand("clear", ctx()).clear).toBe(true);
     expect(runCommand("cls", ctx()).clear).toBe(true);

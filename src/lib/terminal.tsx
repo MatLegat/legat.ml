@@ -374,6 +374,8 @@ export type CommandResult = {
   theme?: ThemeName;
   /** `cd`: the new current directory */
   cwd?: string;
+  /** `replay`: run the intro's commands again, each as its own entry */
+  replay?: boolean;
 };
 
 const PRE = { whiteSpace: "pre-wrap" } as const;
@@ -649,7 +651,8 @@ function help(): CommandResult {
           <span className="text-term-magenta">solarized-light</span>
         </div>
         <div>
-          {cmd("clear")} clear the screen · {cmd("help")} this list
+          {cmd("replay")} run the intro again · {cmd("clear")} clear the screen · {cmd("help")} this
+          list
         </div>
         <div className="text-term-dim">
           keys: ↑/↓ history · Tab complete · Ctrl+C cancel · Ctrl+L clear
@@ -744,6 +747,8 @@ export function runCommand(raw: string, ctx: ShellContext): CommandResult {
           </>
         ),
       };
+    case "replay":
+      return { output: null, replay: true };
     case "whoami":
       return block("whoami");
     case "about":
@@ -793,6 +798,7 @@ const COMMANDS = [
   "logout",
   "ls",
   "pwd",
+  "replay",
   "sh",
   "skills",
   "sudo",

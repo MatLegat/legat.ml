@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
-import { StaticOutput, Typewriter } from "@/components/Typewriter";
+import { Prompt, Replay, Transcript } from "@/components/Transcript";
 import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
 import {
   Dock,
@@ -26,12 +26,10 @@ import {
   commandText,
   complete,
   displayPath,
-  FAST,
   HOME,
   navigateHistory,
   runCommand,
   THEMES,
-  type Block,
   type HistoryNav,
   type ThemeName,
 } from "@/lib/terminal";
@@ -76,9 +74,10 @@ const PROMPT = (
 type HistoryEntry = { id: number; cmd: string; output: ReactNode; path: string };
 
 function Index() {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [cmdDone, setCmdDone] = useState<boolean[]>(() => blocks.map(() => false));
-  const [outDone, setOutDone] = useState<boolean[]>(() => blocks.map(() => false));
+  // The intro has typed everything out on its own
+  const [introTyped, setIntroTyped] = useState(false);
+  // The `replay` command is typing: the prompt waits, like while a script runs
+  const [replaying, setReplaying] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [theme, setTheme] = useState<ThemeName>("green");
   const [cwd, setCwd] = useState(HOME);
@@ -120,8 +119,7 @@ function Index() {
   }
 
   // The intro is finished once it has typed everything, was skipped, or isn't animated at all
-  const allDone = skipped || reducedMotion || activeIdx >= blocks.length;
-  const introDone = allDone;
+  const allDone = skipped || reducedMotion || introTyped;
   useEffect(() => {
     allDoneRef.current = allDone;
   }, [allDone]);
@@ -147,6 +145,23 @@ function Index() {
     window.addEventListener("keydown", skip);
     return () => window.removeEventListener("keydown", skip);
   }, []);
+
+  // While `replay` types: keep the newest line in view if the reader is at the bottom,
+  // and hand the prompt back when it's done
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!replaying || !el) return;
+    const follow = () => {
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) el.scrollTop = el.scrollHeight;
+    };
+    const observer = new MutationObserver(follow);
+    observer.observe(el, { childList: true, subtree: true, characterData: true });
+    return () => {
+      observer.disconnect();
+      inputRef.current?.focus({ preventScroll: true });
+      follow();
+    };
+  }, [replaying]);
 
   // Focus the prompt once it appears: always after a skip (the visitor asked for it),
   // otherwise only if nothing else has focus, so it doesn't pull them off a link or button
@@ -205,10 +220,10 @@ function Index() {
     };
   }, [allDone, measureCaret]);
 
-  function pushHistory(cmd: string, output: ReactNode) {
-    historyId.current += 1;
-    const path = displayPath(cwd);
-    setHistory((h) => [...h, { id: historyId.current, cmd, output, path }]);
+  function pushHistory(cmd: string, output: ReactNode, path = displayPath(cwd)) {
+    // Taken now: the update below runs later, after any other entries pushed in the same go
+    const id = ++historyId.current;
+    setHistory((h) => [...h, { id, cmd, output, path }]);
   }
 
   function clearScreen() {
@@ -337,7 +352,12 @@ function Index() {
       return;
     }
     if (result.theme) setTheme(result.theme);
-    pushHistory(raw.trim(), result.output);
+    if (result.replay) {
+      setReplaying(true);
+      pushHistory(raw.trim(), <Replay onDone={() => setReplaying(false)} />);
+    } else {
+      pushHistory(raw.trim(), result.output);
+    }
     if (result.cwd) setCwd(result.cwd);
   }
 
@@ -511,63 +531,14 @@ function Index() {
                   </div>
                 )}
 
-                {/* Full CV as plain text: in the server HTML for crawlers, read by screen readers
-                  while the animated copy types, then shown in its place once done or skipped */}
+                {/* The intro, typed out. Its plain copy is in the server HTML for crawlers and
+                    read by screen readers, then shown in place once typing is done or skipped. */}
                 {showCv && (
-                  <div className={introDone ? undefined : "sr-only"}>
-                    {blocks.map((b) => (
-                      <StaticBlock key={b.id} block={b} />
-                    ))}
-                  </div>
-                )}
-
-                {!introDone && (
-                  <div aria-hidden="true">
-                    {blocks.map((b, i) => {
-                      if (i > activeIdx) return null;
-                      const isActive = i === activeIdx;
-                      return (
-                        <div key={b.id} className="mb-6">
-                          <div>
-                            <Prompt />
-                            <Typewriter
-                              segments={b.command}
-                              speed={b.cmdSpeed ?? 28}
-                              cursor={isActive && !cmdDone[i]}
-                              start={i === activeIdx}
-                              onDone={() =>
-                                setCmdDone((prev) => {
-                                  if (prev[i]) return prev;
-                                  const next = [...prev];
-                                  next[i] = true;
-                                  return next;
-                                })
-                              }
-                            />
-                          </div>
-                          {(cmdDone[i] || !isActive) && (
-                            <div>
-                              <Typewriter
-                                segments={b.output}
-                                speed={b.outSpeed ?? FAST}
-                                cursor={isActive && !outDone[i]}
-                                start={cmdDone[i]}
-                                onDone={() => {
-                                  setOutDone((prev) => {
-                                    if (prev[i]) return prev;
-                                    const next = [...prev];
-                                    next[i] = true;
-                                    return next;
-                                  });
-                                  setActiveIdx((idx) => Math.max(idx, i + 1));
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <Transcript
+                    blocks={blocks}
+                    skipped={skipped || reducedMotion}
+                    onDone={() => setIntroTyped(true)}
+                  />
                 )}
 
                 {loginLine && (
@@ -594,6 +565,7 @@ function Index() {
 
                 {allDone && (
                   <form
+                    hidden={replaying}
                     onSubmit={(e) => {
                       e.preventDefault();
                       cmdHistory.current = addToHistory(cmdHistory.current, input);
@@ -689,32 +661,6 @@ function Index() {
         </div>
       </div>
     </>
-  );
-}
-
-// Hidden from screen readers: repeating "matteus@legat:~$" before every line is noise
-function Prompt({ path = "~" }: { path?: string }) {
-  return (
-    <span aria-hidden="true">
-      <span style={{ color: "var(--term-prompt)" }}>matteus@legat</span>
-      <span className="text-term-dim">:</span>
-      <span className="text-term-cyan">{path}</span>
-      <span className="text-term-dim">$ </span>
-    </span>
-  );
-}
-
-function StaticBlock({ block }: { block: Block }) {
-  return (
-    <div className="mb-6">
-      <div>
-        <Prompt />
-        <StaticOutput segments={block.command} />
-      </div>
-      <div>
-        <StaticOutput segments={block.output} />
-      </div>
-    </div>
   );
 }
 
