@@ -127,6 +127,21 @@ function Index() {
     scrollToBottom(reducedMotion ? "auto" : "smooth");
   }, [history, reducedMotion]);
 
+  // A key pressed outside a text field can only come from a hardware keyboard (an on-screen
+  // one is only up while typing in one). From then on the prompt may take focus by itself,
+  // e.g. on an iPad with a keyboard attached.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, [contenteditable]")) return;
+      hardwareKeyboard = true;
+      window.removeEventListener("keydown", onKey, { capture: true });
+    };
+    // Capture: noted before the skip below, which focuses the prompt
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, []);
+
   // skip intro on key
   useEffect(() => {
     const skip = (e: KeyboardEvent) => {
@@ -590,13 +605,16 @@ function Index() {
   );
 }
 
+// Set once a hardware keyboard has been used (see the listener in Index)
+let hardwareKeyboard = false;
+
 /**
  * Focuses the prompt without the visitor asking (intro done, window restored, …). Skipped on
  * touch screens, where focusing would pop the on-screen keyboard open: there only a tap on
- * the terminal does that.
+ * the terminal does that. Unless they've been typing on a hardware keyboard.
  */
 function autoFocusPrompt(input: HTMLInputElement | null) {
-  if (window.matchMedia("(pointer: coarse)").matches) return;
+  if (!hardwareKeyboard && window.matchMedia("(pointer: coarse)").matches) return;
   input?.focus({ preventScroll: true });
 }
 

@@ -358,11 +358,17 @@
     border-radius: 0;
   }
 
+  /* Short screens; data-short (use-fit-visible-viewport) also catches the iOS keyboard */
   @media (max-height: 324px) {
     .browser-shell {
       inset: 0.5rem 0.5rem 4.5rem;
       height: calc(var(--app-height) - 5rem);
     }
+  }
+
+  :where(:root[data-short]) .browser-shell {
+    inset: 0.5rem 0.5rem 4.5rem;
+    height: calc(var(--app-height) - 5rem);
   }
 
   @keyframes dock-in {
@@ -446,8 +452,25 @@
 
   /* Short screens (landscape phone, keyboard open): the terminal takes the whole height
      and may shrink below its usual minimum to keep the prompt visible. The dock only
-     shows while the terminal is minimized or closed. */
+     shows while the terminal is minimized or closed. data-short (set from the visible
+     height by use-fit-visible-viewport) also catches the iOS keyboard, which the media
+     query doesn't see; the media query covers the first paint, before that runs. */
   @media (max-height: 324px) {
+    .dock--terminal-open {
+      display: none;
+    }
+
+    .terminal-page.terminal-page {
+      padding: 0.5rem !important;
+    }
+
+    .terminal-frame {
+      height: calc(var(--app-height) - 1rem);
+      min-height: 0;
+    }
+  }
+
+  :where(:root[data-short]) {
     .dock--terminal-open {
       display: none;
     }

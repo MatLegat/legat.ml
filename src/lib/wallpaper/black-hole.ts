@@ -62,7 +62,8 @@ export function createBlackHole({
   hole.innerHTML = BLACK_HOLE_SVG;
   layer.appendChild(hole);
 
-  // Geometry, refreshed on resize: hole center, horizon and disk radii, star homes
+  // Geometry, refreshed when the wallpaper changes size: hole center, horizon and disk
+  // radii, star homes
   let center: Point = { x: 0, y: 0 };
   let horizonR = 0;
   let diskR = 0;
@@ -231,7 +232,16 @@ export function createBlackHole({
   };
 
   const onVisibility = () => (document.hidden ? clearTimeout(respawnTimer) : scheduleRespawn());
-  const onResize = () => measure();
+  // The wallpaper's own size, not the window's: it can change at other times (e.g. the
+  // phone keyboard closing) or not at all when the window does (the keyboard opening)
+  let measuredSize = `${layer.clientWidth}x${layer.clientHeight}`;
+  const onResize = () => {
+    const size = `${layer.clientWidth}x${layer.clientHeight}`;
+    if (size === measuredSize) return;
+    measuredSize = size;
+    measure();
+  };
+  const resizeObserver = new ResizeObserver(onResize);
   // Reduced motion switched on mid-effect: finish instantly instead of animating
   const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const onMotionChange = () => {
@@ -253,7 +263,9 @@ export function createBlackHole({
     });
   };
   document.addEventListener("visibilitychange", onVisibility);
-  window.addEventListener("resize", onResize);
+  resizeObserver.observe(layer);
+  // The hole's size follows the window (vmin), even when the wallpaper's doesn't change
+  window.addEventListener("resize", measure);
   motionQuery.addEventListener("change", onMotionChange);
 
   // --- Switching back ------------------------------------------------------------
@@ -320,7 +332,8 @@ export function createBlackHole({
     window.clearTimeout(explodeTimer);
     effects.forEach((el) => el.remove());
     document.removeEventListener("visibilitychange", onVisibility);
-    window.removeEventListener("resize", onResize);
+    resizeObserver.disconnect();
+    window.removeEventListener("resize", measure);
     motionQuery.removeEventListener("change", onMotionChange);
     hole.remove();
   };
