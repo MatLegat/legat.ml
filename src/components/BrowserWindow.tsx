@@ -1,7 +1,15 @@
-import { ChevronLeft, ChevronRight, Lock, Mail, Plus, Search, Share } from "lucide-react";
-import { useRef, useState, type MouseEvent, type ReactNode, type Ref } from "react";
+import { ChevronLeft, ChevronRight, Lock, Mail, Search, Share } from "lucide-react";
+import {
+  useImperativeHandle,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+  type Ref,
+} from "react";
 import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { TrafficLights } from "@/components/WindowControls";
+import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
 
 export type WindowState = "open" | "minimized" | "closed";
@@ -83,8 +91,12 @@ type BrowserWindowProps = {
   onMinimize: () => void;
   onZoom: () => void;
   onFocus: () => void;
-  /** first favorite, focused when the window opens */
-  firstLinkRef?: Ref<HTMLAnchorElement>;
+  ref?: Ref<BrowserHandle>;
+};
+
+export type BrowserHandle = {
+  /** Moves keyboard focus into the window: the first favorite, or Back on the PDF page */
+  focus(): void;
 };
 
 /** A Safari-style browser window showing a new tab page with favorites. */
@@ -96,12 +108,24 @@ export function BrowserWindow({
   onMinimize,
   onZoom,
   onFocus,
-  firstLinkRef,
+  ref,
 }: BrowserWindowProps) {
   // Two pages: the favorites, and the CV opened from them. `visited` enables forward.
   const [page, setPage] = useState<"start" | "cv">("start");
   const [visited, setVisited] = useState(false);
   const backRef = useRef<HTMLButtonElement>(null);
+  const shellRef = useRef<HTMLElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  // Drag by the toolbar (desktop only)
+  useWindowDrag({
+    shell: shellRef,
+    frame: shellRef,
+    handle: toolbarRef,
+    state,
+    zoomed,
+    onStart: onFocus,
+  });
+  const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
   // A window opened again after closing starts on the favorites, like a new window
   const [previousState, setPreviousState] = useState(state);
@@ -113,10 +137,21 @@ export function BrowserWindow({
     }
   }
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus() {
+        (page === "cv" ? backRef.current : firstLinkRef.current)?.focus({ preventScroll: true });
+      },
+    }),
+    [page],
+  );
+
   const openInline = (e: MouseEvent<HTMLAnchorElement>) => {
     // Browsers that can't show a PDF inside a page (e.g. Android Chrome) keep the link's
-    // default: a new tab
+    // default: a new tab. So do Ctrl/Cmd/Shift-clicks and middle clicks.
     if (!navigator.pdfViewerEnabled) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
     setPage("cv");
     setVisited(true);
@@ -128,6 +163,7 @@ export function BrowserWindow({
 
   return (
     <section
+      ref={shellRef}
       aria-label="Browser"
       className="browser-shell"
       data-state={state}
@@ -135,8 +171,10 @@ export function BrowserWindow({
       data-front={front || undefined}
       inert={state !== "open"}
       onPointerDown={onFocus}
+      onFocus={onFocus}
     >
       <div
+        ref={toolbarRef}
         className="flex shrink-0 select-none items-center gap-3 border-b border-white/10 bg-[#2b2b2d] px-4 py-2.5"
         onDoubleClick={(e) => {
           if (!(e.target as HTMLElement).closest("button, a")) onZoom();
@@ -186,8 +224,10 @@ export function BrowserWindow({
             </>
           )}
         </div>
-        <div className="hidden items-center gap-3 text-white/45 sm:flex">
-          {page === "cv" ? (
+        {/* Only on the PDF page: open it in a real tab. The slot keeps its width either way,
+            so the address bar doesn't shift when switching pages. */}
+        <div className="hidden w-4 shrink-0 items-center text-white/45 sm:flex">
+          {page === "cv" && (
             <a
               href={cvPdfUrl}
               target="_blank"
@@ -198,10 +238,7 @@ export function BrowserWindow({
             >
               <Share className="h-4 w-4" />
             </a>
-          ) : (
-            <Share className="h-4 w-4" aria-hidden="true" />
           )}
-          <Plus className="h-4 w-4" aria-hidden="true" />
         </div>
       </div>
 

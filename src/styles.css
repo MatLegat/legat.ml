@@ -305,6 +305,18 @@
       visibility 0s 160ms;
   }
 
+  /* Dragged windows (see use-window-drag): an offset that stacks with the minimize/close
+     transforms. Full screen ignores it and brings it back afterwards. */
+  .terminal-shell,
+  .browser-shell {
+    translate: var(--window-x, 0px) var(--window-y, 0px);
+  }
+
+  .terminal-page[data-zoomed] .terminal-shell,
+  .browser-shell[data-zoomed] {
+    translate: none;
+  }
+
   /* Stacking: the terminal sits above the stars; the browser above the terminal, unless
      the terminal was used last */
   .terminal-shell {
@@ -520,12 +532,12 @@
       filter: saturate(0.85) blur(2px);
     }
     55% {
-      opacity: 0.825;
+      opacity: 1;
       transform: perspective(1200px) translateY(-4px) scale(1.01);
       filter: saturate(1) blur(0);
     }
     100% {
-      opacity: 0.825;
+      opacity: 1;
       transform: perspective(1200px) translateY(0) scale(1);
       filter: saturate(1) blur(0);
     }
@@ -537,7 +549,7 @@
       transform: translateY(-10px);
     }
     100% {
-      opacity: 0.825;
+      opacity: 1;
       transform: translateY(0);
     }
   }
@@ -616,12 +628,6 @@
     .terminal-window-blur,
     .cursor-block {
       animation: none;
-    }
-
-    /* Same end state as the open animations */
-    .terminal-window,
-    .terminal-window-bar {
-      opacity: 0.825;
     }
   }
 

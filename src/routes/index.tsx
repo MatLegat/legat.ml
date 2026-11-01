@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { BrowserWindow, type WindowState } from "@/components/BrowserWindow";
+import { BrowserWindow, type BrowserHandle, type WindowState } from "@/components/BrowserWindow";
 import { Prompt, Replay, Transcript } from "@/components/Transcript";
 import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/WindowControls";
 import type { BlackHole } from "@/lib/wallpaper/black-hole";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
 import {
   addToHistory,
@@ -92,7 +93,7 @@ function Index() {
   const [browserZoomed, setBrowserZoomed] = useState(false);
   const [front, setFront] = useState<"terminal" | "browser">("terminal");
   const browserButtonRef = useRef<HTMLButtonElement>(null);
-  const browserLinkRef = useRef<HTMLAnchorElement>(null);
+  const browserRef = useRef<BrowserHandle>(null);
   const sessionStart = useRef<Date | null>(null);
   const starsRef = useRef<StarsHandle>(null);
   const [wallpaper, setWallpaper] = useState<Wallpaper>("stars");
@@ -111,6 +112,10 @@ function Index() {
   const [caretOffset, setCaretOffset] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Dragging the terminal by its title bar (desktop only)
+  const terminalShellRef = useRef<HTMLDivElement>(null);
+  const terminalFrameRef = useRef<HTMLDivElement>(null);
+  const terminalBarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorMarkerRef = useRef<HTMLSpanElement>(null);
   const historyId = useRef(0);
@@ -167,7 +172,11 @@ function Index() {
     observer.observe(el, { childList: true, subtree: true, characterData: true });
     return () => {
       observer.disconnect();
-      input?.focus({ preventScroll: true });
+      // Back to the prompt, unless focus has moved elsewhere meanwhile (e.g. the browser)
+      const active = document.activeElement;
+      if (!active || active === document.body || el.contains(active)) {
+        input?.focus({ preventScroll: true });
+      }
       follow();
     };
   }, [replaying]);
@@ -276,6 +285,15 @@ function Index() {
     );
   }
 
+  useWindowDrag({
+    shell: terminalShellRef,
+    frame: terminalFrameRef,
+    handle: terminalBarRef,
+    state: windowState,
+    zoomed,
+    onStart: () => setFront("terminal"),
+  });
+
   // --- Wallpaper -------------------------------------------------------------------
 
   function showToast(text: string) {
@@ -355,6 +373,8 @@ function Index() {
     if (browserState === "closed") setBrowserZoomed(false);
     setBrowserState("open");
     setFront("browser");
+    // Already open: just bring it forward and move focus into it
+    if (browserState === "open") browserRef.current?.focus();
   }
 
   // Focus follows the browser: its first favorite when it opens; when it hides, back to
@@ -364,7 +384,7 @@ function Index() {
     const previous = previousBrowserState.current;
     previousBrowserState.current = browserState;
     if (previous === browserState) return;
-    if (browserState === "open") browserLinkRef.current?.focus({ preventScroll: true });
+    if (browserState === "open") browserRef.current?.focus();
     else if (windowState === "open") inputRef.current?.focus({ preventScroll: true });
     else browserButtonRef.current?.focus({ preventScroll: true });
   }, [browserState, windowState]);
@@ -490,19 +510,32 @@ function Index() {
         data-zoomed={(zoomed && (windowState === "open" || !hideAnimationDone)) || undefined}
       >
         <div
+          ref={terminalShellRef}
           className="terminal-shell"
           data-state={windowState}
           inert={windowState !== "open"}
+          // Clicking or tabbing into a window brings it to the front
           onPointerDown={() => setFront("terminal")}
+          onFocus={() => setFront("terminal")}
         >
-          <div className="terminal-window-blur mx-auto flex terminal-frame max-w-5xl flex-col overflow-hidden rounded-md backdrop-blur-xs">
+          <div
+            ref={terminalFrameRef}
+            className="terminal-window-blur mx-auto flex terminal-frame max-w-5xl flex-col overflow-hidden rounded-[12px] backdrop-blur-xs"
+          >
             <div
-              className="terminal-window mx-auto flex terminal-frame w-full flex-col overflow-hidden rounded-md border border-border shadow-2xl backdrop-blur-md"
-              style={{ backgroundColor: "var(--terminal-bg)" }}
+              className="terminal-window mx-auto flex terminal-frame w-full flex-col overflow-hidden rounded-[12px] border border-border shadow-2xl backdrop-blur-md"
+              // See-through background rather than a see-through window, so the text and the
+              // window buttons keep their real colors (as macOS does)
+              style={{
+                backgroundColor: "color-mix(in oklab, var(--terminal-bg) 82.5%, transparent)",
+              }}
             >
               <div
+                ref={terminalBarRef}
                 className="terminal-window-bar flex shrink-0 select-none items-center justify-between border-b border-border px-4 py-2"
-                style={{ backgroundColor: "var(--terminal-header)" }}
+                style={{
+                  backgroundColor: "color-mix(in oklab, var(--terminal-header) 82.5%, transparent)",
+                }}
                 // Double-clicking the title bar zooms, as on macOS
                 onDoubleClick={(e) => {
                   if (!(e.target as HTMLElement).closest("button")) setZoomed((z) => !z);
@@ -514,7 +547,9 @@ function Index() {
                   onMinimize={() => hideWindow("minimized")}
                   onZoom={() => setZoomed((z) => !z)}
                 />
-                <div className="text-xs text-term-dim">— matteus@legat: {displayPath(cwd)} —</div>
+                <div className="min-w-0 truncate px-2 text-xs text-term-dim">
+                  — matteus@legat: {displayPath(cwd)} —
+                </div>
                 <div className="flex items-center gap-3">
                   <TitleBarWallpaperButton
                     wallpaper={wallpaper}
@@ -525,7 +560,7 @@ function Index() {
                   <button
                     type="button"
                     onClick={cycleTheme}
-                    className="hidden sm:block text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
+                    className="text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
                     aria-label={`Current theme: ${theme}. Click to switch theme.`}
                     title="Click to cycle theme"
                   >
@@ -668,7 +703,7 @@ function Index() {
           onMinimize={() => setBrowserState("minimized")}
           onZoom={() => setBrowserZoomed((z) => !z)}
           onFocus={() => setFront("browser")}
-          firstLinkRef={browserLinkRef}
+          ref={browserRef}
         />
 
         <Dock

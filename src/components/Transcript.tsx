@@ -128,7 +128,10 @@ export function Replay({ onDone }: { onDone: () => void }) {
       if (target?.closest("a, button, input, textarea, select, [contenteditable]")) return;
       if (e.key === "Enter" || e.key === " " || e.key === "Escape") setSkipped(true);
     };
-    const onClick = () => setSkipped(true);
+    // Clicks in the terminal skip it; clicks elsewhere (dock, browser) don't
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as Element | null)?.closest(".terminal-shell")) setSkipped(true);
+    };
     window.addEventListener("keydown", onKey);
     window.addEventListener("click", onClick);
     return () => {
