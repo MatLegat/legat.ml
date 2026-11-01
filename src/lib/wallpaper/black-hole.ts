@@ -202,7 +202,7 @@ export function createBlackHole({
     frameId = requestAnimationFrame(frame);
   };
 
-  // --- Ongoing activity: every second or two a consumed star falls in again ---------
+  // --- Ongoing activity: about once a second a consumed star falls in again ---------
 
   const scheduleRespawn = () => {
     window.clearTimeout(respawnTimer);
@@ -224,7 +224,7 @@ export function createBlackHole({
         }
         scheduleRespawn();
       },
-      1250 + 1000 * Math.random(),
+      625 + 500 * Math.random(),
     );
   };
 
