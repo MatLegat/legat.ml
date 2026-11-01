@@ -209,10 +209,12 @@ export function Dock({
 }: DockProps) {
   return (
     <div
-      className={`dock fixed inset-x-0 bottom-2 z-20 flex justify-center ${hidden ? "dock--hidden" : ""} ${terminal === "open" ? "dock--terminal-open" : ""}`}
+      // A click-through layer as tall as what's visible, with the dock at its bottom: it moves
+      // up with the visible area when a phone keyboard opens, instead of staying behind it
+      className={`dock pointer-events-none fixed inset-x-0 top-0 z-20 flex h-[var(--app-height)] items-end justify-center pb-2 ${hidden ? "dock--hidden" : ""} ${terminal === "open" ? "dock--terminal-open" : ""}`}
       inert={hidden}
     >
-      <div className="flex gap-2.5 rounded-2xl border border-white/10 bg-white/10 p-2.5 shadow-2xl backdrop-blur-md">
+      <div className="pointer-events-auto flex gap-2.5 rounded-2xl border border-white/10 bg-white/10 p-2.5 shadow-2xl backdrop-blur-md">
         <button
           ref={buttonRef}
           type="button"

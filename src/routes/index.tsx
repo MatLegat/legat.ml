@@ -13,6 +13,7 @@ import { Prompt, Replay, Transcript } from "@/components/Transcript";
 import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
 import { Dock, TrafficLights, type Wallpaper } from "@/components/WindowControls";
 import type { BlackHole } from "@/lib/wallpaper/black-hole";
+import { useFitVisibleViewport } from "@/hooks/use-fit-visible-viewport";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
@@ -78,6 +79,7 @@ function Index() {
   const [theme, setTheme] = useState<ThemeName>("green");
   const [cwd, setCwd] = useState(HOME);
   const reducedMotion = useReducedMotion();
+  useFitVisibleViewport();
   const [windowState, setWindowState] = useState<"open" | "minimized" | "closed">("open");
   const [zoomed, setZoomed] = useState(false);
   const [loginLine, setLoginLine] = useState<string | null>(null);
@@ -169,7 +171,7 @@ function Index() {
       // Back to the prompt, unless focus has moved elsewhere meanwhile (e.g. the browser)
       const active = document.activeElement;
       if (!active || active === document.body || el.contains(active)) {
-        input?.focus({ preventScroll: true });
+        autoFocusPrompt(input);
       }
       follow();
     };
@@ -181,7 +183,7 @@ function Index() {
     if (!allDone) return;
     const active = document.activeElement;
     if (skipped || !active || active === document.body) {
-      inputRef.current?.focus({ preventScroll: true });
+      autoFocusPrompt(inputRef.current);
     }
   }, [allDone, skipped]);
 
@@ -359,7 +361,7 @@ function Index() {
     setWindowState("open");
     setFront("terminal");
     // Already open: just bring it forward and back to the prompt
-    if (windowState === "open") inputRef.current?.focus({ preventScroll: true });
+    if (windowState === "open") autoFocusPrompt(inputRef.current);
   }
 
   function openBrowser() {
@@ -379,7 +381,7 @@ function Index() {
     previousBrowserState.current = browserState;
     if (previous === browserState) return;
     if (browserState === "open") browserRef.current?.focus();
-    else if (windowState === "open") inputRef.current?.focus({ preventScroll: true });
+    else if (windowState === "open") autoFocusPrompt(inputRef.current);
     else browserButtonRef.current?.focus({ preventScroll: true });
   }, [browserState, windowState]);
 
@@ -389,7 +391,7 @@ function Index() {
     const previous = previousWindowState.current;
     previousWindowState.current = windowState;
     if (previous === windowState) return;
-    if (windowState === "open") inputRef.current?.focus({ preventScroll: true });
+    if (windowState === "open") autoFocusPrompt(inputRef.current);
     else dockButtonRef.current?.focus();
   }, [windowState]);
 
@@ -499,7 +501,7 @@ function Index() {
         {toast.text}
       </div>
       <div
-        className={`terminal-page box-border h-dvh overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
+        className={`terminal-page box-border h-[var(--app-height)] overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
         // Full-screen layout while the window shows and while it animates away; then the footer is back
         data-zoomed={(zoomed && (windowState === "open" || !hideAnimationDone)) || undefined}
       >
@@ -661,8 +663,11 @@ function Index() {
                         onKeyUp={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
                         onClick={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
                         onSelect={(e) => setCaretIndex(e.currentTarget.selectionStart ?? 0)}
+                        // Commands are lowercase: no auto-capitalizing or correcting on phones
                         spellCheck={false}
                         autoComplete="off"
+                        autoCapitalize="none"
+                        autoCorrect="off"
                         aria-label="terminal input"
                         className="terminal-input-field"
                       />
@@ -709,6 +714,16 @@ function Index() {
       </div>
     </>
   );
+}
+
+/**
+ * Focuses the prompt without the visitor asking (intro done, window restored, …). Skipped on
+ * touch screens, where focusing would pop the on-screen keyboard open: there only a tap on
+ * the terminal does that.
+ */
+function autoFocusPrompt(input: HTMLInputElement | null) {
+  if (window.matchMedia("(pointer: coarse)").matches) return;
+  input?.focus({ preventScroll: true });
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

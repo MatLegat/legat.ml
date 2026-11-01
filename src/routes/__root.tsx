@@ -31,7 +31,11 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        // The on-screen keyboard shrinks the page instead of covering it (Android Chrome)
+        content: "width=device-width, initial-scale=1, interactive-widget=resizes-content",
+      },
       { title: "Matteus Legat" },
       { name: "description", content: "Full Stack Web Developer" },
       { name: "author", content: "Matteus Legat" },

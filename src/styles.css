@@ -72,6 +72,8 @@
 }
 
 :root {
+  /* Visible page height: 100dvh, or the exact visible height from use-fit-visible-viewport */
+  --app-height: 100dvh;
   --radius: 0.25rem;
   /* Terminal dark palette — default: green */
   --background: oklch(0.16 0.012 240);
@@ -231,7 +233,7 @@
 
   html,
   body {
-    height: 100dvh;
+    height: var(--app-height);
     overflow: hidden;
     margin: 0;
     /* background-color: var(--color-background); */
@@ -248,6 +250,8 @@
       rgba(23, 37, 84, 0.2) 100%
     );
     background-attachment: fixed;
+    /* The page itself never scrolls or bounces; only the windows' content does */
+    overscroll-behavior: none;
   }
 }
 
@@ -331,7 +335,7 @@
     inset: 1rem 1rem 6rem;
     margin: auto;
     width: min(880px, calc(100vw - 2rem));
-    height: min(620px, calc(100dvh - 7rem));
+    height: min(620px, calc(var(--app-height) - 7rem));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -349,7 +353,7 @@
   .browser-shell[data-zoomed] {
     inset: 0;
     width: 100vw;
-    height: 100dvh;
+    height: var(--app-height);
     border: 0;
     border-radius: 0;
   }
@@ -357,7 +361,7 @@
   @media (max-height: 324px) {
     .browser-shell {
       inset: 0.5rem 0.5rem 4.5rem;
-      height: calc(100dvh - 5rem);
+      height: calc(var(--app-height) - 5rem);
     }
   }
 
@@ -393,7 +397,7 @@
   }
 
   [data-zoomed] .terminal-frame {
-    height: 100dvh;
+    height: var(--app-height);
     min-height: 0;
   }
 
@@ -424,19 +428,19 @@
   /* Terminal height: the viewport minus the page's top padding and room for the dock
      (about 5.6rem). The padding grows at the sm and md breakpoints. */
   .terminal-frame {
-    height: calc(100dvh - 6.5rem);
+    height: calc(var(--app-height) - 6.5rem);
     min-height: 16rem;
   }
 
   @media (min-width: 40rem) {
     .terminal-frame {
-      height: calc(100dvh - 7.25rem);
+      height: calc(var(--app-height) - 7.25rem);
     }
   }
 
   @media (min-width: 48rem) {
     .terminal-frame {
-      height: calc(100dvh - 8.25rem);
+      height: calc(var(--app-height) - 8.25rem);
     }
   }
 
@@ -453,9 +457,15 @@
     }
 
     .terminal-frame {
-      height: calc(100dvh - 1rem);
+      height: calc(var(--app-height) - 1rem);
       min-height: 0;
     }
+  }
+
+  /* Scrolling a window's content to its end doesn't drag the page along */
+  .terminal-window-content,
+  .browser-shell > div:last-child {
+    overscroll-behavior: contain;
   }
 
   .terminal-input-shell {
@@ -638,7 +648,7 @@
     /* The visible height (dvh), like the rest of the page. 100vh is taller than the screen
        on phones while the browser bars show, which put the black hole below the center. */
     height: 100vh;
-    height: 100dvh;
+    height: var(--app-height);
     z-index: 0;
     overflow: hidden;
   }
