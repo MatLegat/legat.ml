@@ -240,6 +240,11 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
     };
 
     function animate() {
+      // An effect took over the stars (takeControl reset their offsets): stop here
+      if (controlledRef.current) {
+        frameId = 0;
+        return;
+      }
       pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * POINTER_LERP;
       pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * POINTER_LERP;
 
