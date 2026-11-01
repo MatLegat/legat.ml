@@ -146,23 +146,6 @@ type WallpaperButtonProps = {
   onToggle: () => void;
 };
 
-/** Small wallpaper toggle for the terminal's title bar. */
-export function TitleBarWallpaperButton({ wallpaper, busy, onToggle }: WallpaperButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={wallpaperLabel(wallpaper)}
-      aria-pressed={wallpaper === "black-hole"}
-      aria-disabled={busy || undefined}
-      title={wallpaperLabel(wallpaper)}
-      className={`grid h-6 w-6 cursor-pointer place-items-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[var(--term-prompt)] ${busy ? "cursor-wait" : ""}`}
-    >
-      <BlackHoleGlyph className="h-4 w-4" />
-    </button>
-  );
-}
-
 const dockTile =
   "grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-[#3a3a3c] to-[#1c1c1e] shadow-lg transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1 group-focus-visible:ring-2 group-focus-visible:ring-[var(--term-prompt)]";
 const dockTooltip =

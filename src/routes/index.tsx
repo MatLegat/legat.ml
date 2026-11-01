@@ -7,17 +7,11 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
-  type RefObject,
 } from "react";
 import { BrowserWindow, type BrowserHandle, type WindowState } from "@/components/BrowserWindow";
 import { Prompt, Replay, Transcript } from "@/components/Transcript";
 import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
-import {
-  Dock,
-  TitleBarWallpaperButton,
-  TrafficLights,
-  type Wallpaper,
-} from "@/components/WindowControls";
+import { Dock, TrafficLights, type Wallpaper } from "@/components/WindowControls";
 import type { BlackHole } from "@/lib/wallpaper/black-hole";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useWindowDrag } from "@/hooks/use-window-drag";
@@ -348,13 +342,13 @@ function Index() {
 
   useEffect(() => () => blackHoleRef.current?.destroy(), []);
 
-  // Both wallpaper buttons first minimize every open window, so the change is in full view
+  // The dock's wallpaper button first minimizes every open window, so the change is in full view
   const dockWallpaperRef = useRef<HTMLButtonElement>(null);
-  function switchWallpaper(keepFocus?: RefObject<HTMLButtonElement | null>) {
+  function switchWallpaper() {
     if (windowState === "open") hideWindow("minimized");
     if (browserState === "open") setBrowserState("minimized");
-    // Minimizing moves focus to the dock's app icons; keep it on the button that was pressed
-    if (keepFocus) requestAnimationFrame(() => keepFocus.current?.focus({ preventScroll: true }));
+    // Minimizing moves focus to the dock's app icons; keep it on the wallpaper button
+    requestAnimationFrame(() => dockWallpaperRef.current?.focus({ preventScroll: true }));
     return toggleWallpaper();
   }
 
@@ -550,23 +544,15 @@ function Index() {
                 <div className="min-w-0 truncate px-2 text-xs text-term-dim">
                   — matteus@legat: {displayPath(cwd)} —
                 </div>
-                <div className="flex items-center gap-3">
-                  <TitleBarWallpaperButton
-                    wallpaper={wallpaper}
-                    busy={wallpaperBusy}
-                    // Minimized, so the black hole and the explosion aren't behind the window
-                    onToggle={() => void switchWallpaper()}
-                  />
-                  <button
-                    type="button"
-                    onClick={cycleTheme}
-                    className="text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
-                    aria-label={`Current theme: ${theme}. Click to switch theme.`}
-                    title="Click to cycle theme"
-                  >
-                    {theme}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={cycleTheme}
+                  className="text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
+                  aria-label={`Current theme: ${theme}. Click to switch theme.`}
+                  title="Click to cycle theme"
+                >
+                  {theme}
+                </button>
               </div>
 
               <div
@@ -717,7 +703,7 @@ function Index() {
           browserButtonRef={browserButtonRef}
           wallpaper={wallpaper}
           busy={wallpaperBusy}
-          onToggleWallpaper={() => void switchWallpaper(dockWallpaperRef)}
+          onToggleWallpaper={() => void switchWallpaper()}
           wallpaperButtonRef={dockWallpaperRef}
         />
       </div>
