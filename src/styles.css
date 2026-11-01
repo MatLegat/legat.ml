@@ -275,14 +275,16 @@
   }
 
   /* Window buttons: minimize shrinks toward the dock, close fades out */
-  .terminal-shell {
+  .terminal-shell,
+  .browser-shell {
     transform-origin: 50% 100%;
     transition:
       transform 300ms cubic-bezier(0.2, 0.9, 0.2, 1),
       opacity 300ms ease-out;
   }
 
-  .terminal-shell[data-state="minimized"] {
+  .terminal-shell[data-state="minimized"],
+  .browser-shell[data-state="minimized"] {
     transform: translateY(30vh) scale(0.08);
     opacity: 0;
     visibility: hidden;
@@ -292,7 +294,8 @@
       visibility 0s 380ms;
   }
 
-  .terminal-shell[data-state="closed"] {
+  .terminal-shell[data-state="closed"],
+  .browser-shell[data-state="closed"] {
     transform: scale(0.96);
     opacity: 0;
     visibility: hidden;
@@ -300,6 +303,50 @@
       transform 160ms ease-in,
       opacity 160ms ease-in,
       visibility 0s 160ms;
+  }
+
+  /* Stacking: the terminal sits above the stars; the browser above the terminal, unless
+     the terminal was used last */
+  .terminal-shell {
+    position: relative;
+    z-index: 10;
+  }
+
+  .browser-shell {
+    position: fixed;
+    z-index: 5;
+    /* Centered in the space above the dock */
+    inset: 1rem 1rem 6rem;
+    margin: auto;
+    width: min(880px, calc(100vw - 2rem));
+    height: min(620px, calc(100dvh - 7rem));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 12px;
+    background: #1e1e1e;
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+
+  .browser-shell[data-front] {
+    z-index: 15;
+  }
+
+  .browser-shell[data-zoomed] {
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  @media (max-height: 324px) {
+    .browser-shell {
+      inset: 0.5rem 0.5rem 4.5rem;
+      height: calc(100dvh - 5rem);
+    }
   }
 
   @keyframes dock-in {
@@ -310,7 +357,22 @@
   }
 
   .dock {
-    animation: dock-in 250ms ease-out 120ms both;
+    animation: dock-in 250ms ease-out 120ms backwards;
+    transition:
+      opacity 200ms ease-out,
+      transform 200ms ease-out,
+      visibility 0s;
+  }
+
+  /* Out of the way: on-screen keyboard open, or a window is full screen */
+  .dock--hidden {
+    opacity: 0;
+    transform: translateY(16px);
+    visibility: hidden;
+    transition:
+      opacity 150ms ease-in,
+      transform 150ms ease-in,
+      visibility 0s 150ms;
   }
 
   /* Green button: the window fills the screen */
@@ -333,37 +395,44 @@
     border-width: 0;
   }
 
-  [data-zoomed] .hide-when-zoomed {
-    display: none;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .terminal-shell,
-    .terminal-shell[data-state] {
+    .terminal-shell[data-state],
+    .browser-shell,
+    .browser-shell[data-state] {
       transition: none;
     }
 
     .dock {
       animation: none;
+      transition: none;
     }
   }
 
-  /* Terminal height: the viewport minus padding and room for the footer */
+  /* Terminal height: the viewport minus the page's top padding and room for the dock
+     (about 5.6rem). The padding grows at the sm and md breakpoints. */
   .terminal-frame {
-    height: calc(100dvh - 5.25rem);
+    height: calc(100dvh - 6.5rem);
     min-height: 16rem;
   }
 
   @media (min-width: 40rem) {
     .terminal-frame {
-      height: calc(100dvh - 6rem);
+      height: calc(100dvh - 7.25rem);
     }
   }
 
-  /* Short screens (landscape phone, keyboard open): no footer, so the terminal takes
-     the whole height and may shrink below its usual minimum to keep the prompt visible */
+  @media (min-width: 48rem) {
+    .terminal-frame {
+      height: calc(100dvh - 8.25rem);
+    }
+  }
+
+  /* Short screens (landscape phone, keyboard open): the terminal takes the whole height
+     and may shrink below its usual minimum to keep the prompt visible. The dock only
+     shows while the terminal is minimized or closed. */
   @media (max-height: 324px) {
-    .hide-on-short-height {
+    .dock--terminal-open {
       display: none;
     }
 

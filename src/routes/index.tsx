@@ -7,8 +7,9 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
-import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
+import { BrowserWindow, type WindowState } from "@/components/BrowserWindow";
 import { Prompt, Replay, Transcript } from "@/components/Transcript";
 import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
 import {
@@ -18,6 +19,7 @@ import {
   type Wallpaper,
 } from "@/components/WindowControls";
 import type { BlackHole } from "@/lib/wallpaper/black-hole";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { SITE_URL } from "@/lib/site";
 import {
@@ -86,6 +88,12 @@ function Index() {
   const [zoomed, setZoomed] = useState(false);
   const [loginLine, setLoginLine] = useState<string | null>(null);
   const dockButtonRef = useRef<HTMLButtonElement>(null);
+  // The browser window from the dock, and which window is on top
+  const [browserState, setBrowserState] = useState<WindowState>("closed");
+  const [browserZoomed, setBrowserZoomed] = useState(false);
+  const [front, setFront] = useState<"terminal" | "browser">("terminal");
+  const browserButtonRef = useRef<HTMLButtonElement>(null);
+  const browserLinkRef = useRef<HTMLAnchorElement>(null);
   const sessionStart = useRef<Date | null>(null);
   const starsRef = useRef<StarsHandle>(null);
   const [wallpaper, setWallpaper] = useState<Wallpaper>("stars");
@@ -103,6 +111,8 @@ function Index() {
   const [caretIndex, setCaretIndex] = useState(0);
   const [caretOffset, setCaretOffset] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
+  // Touch screens show an on-screen keyboard while typing in the prompt
+  const touchScreen = useMediaQuery("(pointer: coarse)");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mirrorMarkerRef = useRef<HTMLSpanElement>(null);
@@ -150,6 +160,8 @@ function Index() {
   // and hand the prompt back when it's done
   useEffect(() => {
     const el = scrollRef.current;
+    // The prompt stays mounted (only hidden) during a replay, so this is the one to refocus
+    const input = inputRef.current;
     if (!replaying || !el) return;
     const follow = () => {
       if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) el.scrollTop = el.scrollHeight;
@@ -158,7 +170,7 @@ function Index() {
     observer.observe(el, { childList: true, subtree: true, characterData: true });
     return () => {
       observer.disconnect();
-      inputRef.current?.focus({ preventScroll: true });
+      input?.focus({ preventScroll: true });
       follow();
     };
   }, [replaying]);
@@ -321,12 +333,44 @@ function Index() {
 
   useEffect(() => () => blackHoleRef.current?.destroy(), []);
 
+  // Both wallpaper buttons first minimize every open window, so the change is in full view
+  const dockWallpaperRef = useRef<HTMLButtonElement>(null);
+  function switchWallpaper(keepFocus?: RefObject<HTMLButtonElement | null>) {
+    if (windowState === "open") hideWindow("minimized");
+    if (browserState === "open") setBrowserState("minimized");
+    // Minimizing moves focus to the dock's app icons; keep it on the button that was pressed
+    if (keepFocus) requestAnimationFrame(() => keepFocus.current?.focus({ preventScroll: true }));
+    return toggleWallpaper();
+  }
+
   function openFromDock() {
     window.clearTimeout(hideTimer.current);
     setHideAnimationDone(false);
     if (windowState === "closed") startNewSession();
     setWindowState("open");
+    setFront("terminal");
+    // Already open: just bring it forward and back to the prompt
+    if (windowState === "open") inputRef.current?.focus({ preventScroll: true });
   }
+
+  function openBrowser() {
+    // A closed browser opens as a new, normal-sized window
+    if (browserState === "closed") setBrowserZoomed(false);
+    setBrowserState("open");
+    setFront("browser");
+  }
+
+  // Focus follows the browser: its first favorite when it opens; when it hides, back to
+  // the dock (or the prompt, if the terminal is up and the dock isn't shown)
+  const previousBrowserState = useRef(browserState);
+  useEffect(() => {
+    const previous = previousBrowserState.current;
+    previousBrowserState.current = browserState;
+    if (previous === browserState) return;
+    if (browserState === "open") browserLinkRef.current?.focus({ preventScroll: true });
+    else if (windowState === "open") inputRef.current?.focus({ preventScroll: true });
+    else browserButtonRef.current?.focus({ preventScroll: true });
+  }, [browserState, windowState]);
 
   // Keep keyboard focus with whatever is on screen: the dock while hidden, the prompt after
   const previousWindowState = useRef(windowState);
@@ -448,7 +492,12 @@ function Index() {
         // Full-screen layout while the window shows and while it animates away; then the footer is back
         data-zoomed={(zoomed && (windowState === "open" || !hideAnimationDone)) || undefined}
       >
-        <div className="terminal-shell" data-state={windowState} inert={windowState !== "open"}>
+        <div
+          className="terminal-shell"
+          data-state={windowState}
+          inert={windowState !== "open"}
+          onPointerDown={() => setFront("terminal")}
+        >
           <div className="terminal-window-blur mx-auto flex terminal-frame max-w-5xl flex-col overflow-hidden rounded-md backdrop-blur-xs">
             <div
               className="terminal-window mx-auto flex terminal-frame w-full flex-col overflow-hidden rounded-md border border-border shadow-2xl backdrop-blur-md"
@@ -474,10 +523,7 @@ function Index() {
                     wallpaper={wallpaper}
                     busy={wallpaperBusy}
                     // Minimized, so the black hole and the explosion aren't behind the window
-                    onToggle={() => {
-                      hideWindow("minimized");
-                      void toggleWallpaper();
-                    }}
+                    onToggle={() => void switchWallpaper()}
                   />
                   <button
                     type="button"
@@ -617,48 +663,35 @@ function Index() {
           </div>
         </div>
 
-        {windowState !== "open" && (
-          <Dock
-            minimized={windowState === "minimized"}
-            onOpen={openFromDock}
-            buttonRef={dockButtonRef}
-            wallpaper={wallpaper}
-            busy={wallpaperBusy}
-            onToggleWallpaper={() => void toggleWallpaper()}
-          />
-        )}
+        <BrowserWindow
+          state={browserState}
+          zoomed={browserZoomed}
+          front={front === "browser"}
+          onClose={() => setBrowserState("closed")}
+          onMinimize={() => setBrowserState("minimized")}
+          onZoom={() => setBrowserZoomed((z) => !z)}
+          onFocus={() => setFront("browser")}
+          firstLinkRef={browserLinkRef}
+        />
 
-        <div className="hide-on-short-height hide-when-zoomed fixed inset-x-0 bottom-5 z-10 flex flex-col gap-1 px-2 md:bottom-3 text-shadow-md text-shadow-black/50">
-          <p className="mx-auto mt-4 max-w-5xl text-center text-xs text-term-dim">
-            <a
-              href="mailto:matteus@legat.ml"
-              className="text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
-            >
-              matteus@legat.ml
-            </a>
-            {" · theme: "}
-            <button
-              type="button"
-              onClick={cycleTheme}
-              className="cursor-pointer text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors text-shadow-md text-shadow-black/50"
-              aria-label={`Current theme: ${theme}. Click to switch theme.`}
-              title="Click to cycle theme"
-            >
-              {theme}
-            </button>
-          </p>
-          <p className="mx-auto max-w-5xl text-center text-xs text-term-dim">
-            <a
-              href={cvPdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-term-dim underline-offset-4 hover:text-foreground hover:underline transition-colors"
-            >
-              Download CV as PDF
-            </a>
-            {` · ${new Date().getFullYear()}`}
-          </p>
-        </div>
+        <Dock
+          terminal={windowState}
+          // Out of the way while the on-screen keyboard is up or a window is full screen
+          hidden={
+            (inputFocused && touchScreen) ||
+            (zoomed && windowState === "open") ||
+            (browserZoomed && browserState === "open")
+          }
+          onOpen={openFromDock}
+          buttonRef={dockButtonRef}
+          browser={browserState}
+          onOpenBrowser={openBrowser}
+          browserButtonRef={browserButtonRef}
+          wallpaper={wallpaper}
+          busy={wallpaperBusy}
+          onToggleWallpaper={() => void switchWallpaper(dockWallpaperRef)}
+          wallpaperButtonRef={dockWallpaperRef}
+        />
       </div>
     </>
   );

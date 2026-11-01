@@ -31,6 +31,8 @@ function Light({ label, color, iconColor, onClick, pressed, children }: LightPro
 }
 
 type TrafficLightsProps = {
+  /** which window, for the button labels */
+  name?: string;
   zoomed: boolean;
   onClose: () => void;
   onMinimize: () => void;
@@ -38,11 +40,17 @@ type TrafficLightsProps = {
 };
 
 /** macOS-style close / minimize / zoom buttons; icons show while hovering the group. */
-export function TrafficLights({ zoomed, onClose, onMinimize, onZoom }: TrafficLightsProps) {
+export function TrafficLights({
+  name = "terminal",
+  zoomed,
+  onClose,
+  onMinimize,
+  onZoom,
+}: TrafficLightsProps) {
   return (
     <div className="group flex items-center gap-2">
       <Light
-        label="Close terminal"
+        label={`Close ${name}`}
         color="bg-[#ff5f57]"
         iconColor="text-[#4d0000]"
         onClick={onClose}
@@ -55,7 +63,7 @@ export function TrafficLights({ zoomed, onClose, onMinimize, onZoom }: TrafficLi
         />
       </Light>
       <Light
-        label="Minimize terminal"
+        label={`Minimize ${name}`}
         color="bg-[#febc2e]"
         iconColor="text-[#995700]"
         onClick={onMinimize}
@@ -63,7 +71,7 @@ export function TrafficLights({ zoomed, onClose, onMinimize, onZoom }: TrafficLi
         <path d="M2.75 6h6.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       </Light>
       <Light
-        label={zoomed ? "Exit full screen" : "Enter full screen"}
+        label={`${zoomed ? "Exit" : "Enter"} full screen${name === "terminal" ? "" : ` (${name})`}`}
         color="bg-[#28c840]"
         iconColor="text-[#006500]"
         onClick={onZoom}
@@ -161,40 +169,92 @@ const dockTooltip =
   "pointer-events-none absolute -top-9 whitespace-nowrap rounded-md bg-black/70 px-2 py-0.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100";
 
 type DockProps = {
-  /** minimized: the window still exists (dot under the icon); closed: a new window opens */
-  minimized: boolean;
+  /** terminal window state: a dot shows while it's running (open or minimized) */
+  terminal: "open" | "minimized" | "closed";
   onOpen: () => void;
   buttonRef?: Ref<HTMLButtonElement>;
+  /** browser window state: a dot shows while it's open or minimized */
+  browser: "open" | "minimized" | "closed";
+  onOpenBrowser: () => void;
+  browserButtonRef?: Ref<HTMLButtonElement>;
+  wallpaperButtonRef?: Ref<HTMLButtonElement>;
+  /** out of the way: on-screen keyboard open, or a window is full screen */
+  hidden?: boolean;
 } & Omit<WallpaperButtonProps, "onToggle"> & { onToggleWallpaper: () => void };
 
-/** The dock, shown while the terminal is minimized or closed: Terminal and Wallpaper. */
+const openLabel = (app: string, state: "open" | "minimized" | "closed") =>
+  `${state === "minimized" ? "Restore" : state === "open" ? "Show" : "Open"} ${app}`;
+
+/** A compass, like a browser's icon */
+function CompassGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+      <circle cx="16" cy="16" r="14" fill="#2f8cf0" />
+      <circle
+        cx="16"
+        cy="16"
+        r="12.2"
+        fill="none"
+        stroke="#fff"
+        strokeOpacity="0.55"
+        strokeWidth="0.8"
+        strokeDasharray="0.6 2.6"
+      />
+      <path d="M21.5 10.5 17.2 17.2 10.5 21.5 14.8 14.8Z" fill="#fff" />
+      <path d="M21.5 10.5 17.2 17.2 14.8 14.8Z" fill="#ff4b3a" />
+    </svg>
+  );
+}
+
+const dockDot = (on: boolean) => `mt-1 h-1 w-1 rounded-full bg-white/80 ${on ? "" : "invisible"}`;
+
+/** The dock at the bottom of the screen: Terminal, Browser, Wallpaper. */
 export function Dock({
-  minimized,
+  terminal,
   onOpen,
   buttonRef,
+  browser,
+  onOpenBrowser,
+  browserButtonRef,
+  wallpaperButtonRef,
   wallpaper,
   busy,
   onToggleWallpaper,
+  hidden = false,
 }: DockProps) {
   return (
-    <div className="dock fixed inset-x-0 bottom-20 z-20 flex justify-center [@media(max-height:324px)]:bottom-3">
+    <div
+      className={`dock fixed inset-x-0 bottom-2 z-20 flex justify-center ${hidden ? "dock--hidden" : ""} ${terminal === "open" ? "dock--terminal-open" : ""}`}
+      inert={hidden}
+    >
       <div className="flex gap-2 rounded-2xl border border-white/10 bg-white/10 p-2 shadow-2xl backdrop-blur-md">
         <button
           ref={buttonRef}
           type="button"
           onClick={onOpen}
-          aria-label={minimized ? "Restore terminal" : "Open terminal"}
+          aria-label={openLabel("terminal", terminal)}
           className="group relative flex flex-col items-center focus-visible:outline-none"
         >
           <span className={dockTooltip}>Terminal</span>
           <span className={`${dockTile} font-mono text-sm text-[var(--term-green)]`}>&gt;_</span>
-          <span
-            className={`mt-1 h-1 w-1 rounded-full bg-white/80 ${minimized ? "" : "invisible"}`}
-            aria-hidden="true"
-          />
+          <span className={dockDot(terminal !== "closed")} aria-hidden="true" />
+        </button>
+        <button
+          ref={browserButtonRef}
+          type="button"
+          onClick={onOpenBrowser}
+          aria-label={openLabel("browser", browser)}
+          className="group relative flex flex-col items-center focus-visible:outline-none"
+        >
+          <span className={dockTooltip}>Browser</span>
+          <span className={dockTile}>
+            <CompassGlyph className="h-9 w-9" />
+          </span>
+          <span className={dockDot(browser !== "closed")} aria-hidden="true" />
         </button>
         <button
           type="button"
+          ref={wallpaperButtonRef}
           onClick={onToggleWallpaper}
           aria-label={wallpaperLabel(wallpaper)}
           aria-pressed={wallpaper === "black-hole"}
@@ -205,10 +265,7 @@ export function Dock({
           <span className={dockTile}>
             <BlackHoleGlyph className="h-8 w-8" />
           </span>
-          <span
-            className={`mt-1 h-1 w-1 rounded-full bg-white/80 ${wallpaper === "black-hole" ? "" : "invisible"}`}
-            aria-hidden="true"
-          />
+          <span className={dockDot(wallpaper === "black-hole")} aria-hidden="true" />
         </button>
       </div>
     </div>
