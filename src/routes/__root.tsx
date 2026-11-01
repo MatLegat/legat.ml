@@ -1,29 +1,66 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+  Outlet,
+  Link,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+  useLocation,
+} from "@tanstack/react-router";
 
+import StarsBackground from "../components/StarsBackground";
 import faviconSvg from "../assets/favicon.svg?url";
 import portraitJpg from "../assets/matteus-portrait.jpg?url";
 import { SITE_URL } from "../lib/site";
 import appCss from "../styles.css?url";
 
+/** The missing path, typed at the prompt as if it were a command. */
 function NotFoundComponent() {
+  const pathname = useLocation({ select: (l) => l.pathname });
+  let command = pathname.replace(/^\/+|\/+$/g, "");
+  try {
+    command = decodeURIComponent(command);
+  } catch {
+    // Malformed escapes: show the path as it is
+  }
+  const prompt = (
+    <span aria-hidden="true">
+      <span style={{ color: "var(--term-prompt)" }}>matteus@legat</span>
+      <span className="text-term-dim">:</span>
+      <span className="text-term-cyan">~</span>
+      <span className="text-term-dim">$ </span>
+    </span>
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
+    <>
+      <StarsBackground />
+      <main className="relative z-10 flex h-[var(--app-height)] items-center justify-center p-4">
+        <div
+          className="w-full max-w-2xl rounded-[12px] border border-border p-6 text-sm leading-relaxed text-foreground shadow-2xl backdrop-blur-md crt-glow sm:text-[15px]"
+          style={{ backgroundColor: "color-mix(in oklab, var(--terminal-bg) 82.5%, transparent)" }}
+        >
+          <h1 className="sr-only">Page not found</h1>
+          <div className="break-all" style={{ whiteSpace: "pre-wrap" }}>
+            {prompt}
+            {command}
+          </div>
+          <div className="break-all text-term-red" style={{ whiteSpace: "pre-wrap" }}>
+            bash: {command}: command not found
+          </div>
+          <div className="mt-4 text-term-dim">
+            // 404 · page not found · run{" "}
+            <Link to="/" className="text-term-yellow underline underline-offset-4">
+              cd ~
+            </Link>{" "}
+            to go home
+          </div>
+          <div className="mt-4">
+            {prompt}
+            <span className="cursor-block" aria-hidden="true" />
+          </div>
         </div>
-      </div>
-    </div>
+      </main>
+    </>
   );
 }
 
