@@ -215,7 +215,7 @@ export function BrowserWindow({
           {page === "start" ? (
             <>
               <Search className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Search or enter website name</span>
+              <span className="truncate">New tab</span>
             </>
           ) : (
             <>
