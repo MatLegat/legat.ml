@@ -31,7 +31,11 @@ const STAR_COLOR_ORDERS = [
 ] as const;
 
 type StarStyle = CSSProperties & {
-  "--star-color": string;
+  "--star-color-1": string;
+  "--star-color-2": string;
+  "--star-color-3": string;
+  "--star-color-4": string;
+  "--star-color-5": string;
   "--star-offset-x": string;
   "--star-offset-y": string;
 };
@@ -416,9 +420,8 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
       <div ref={layerRef} className="stars-bg__layer" />
       {STARS.map((star, index) =>
         (() => {
-          // Each star cycles through its colors at its own pace and phase
-          const colorDuration = 9 + (index % 5) * 2;
-          const colorDelay = -((index * 3) % 11);
+          const colorDuration = `${9 + (index % 5) * 2}s`;
+          const colorDelay = `-${(index * 3) % 11}s`;
           const colorOrder = STAR_COLOR_ORDERS[index % STAR_COLOR_ORDERS.length];
           const exploded = explodedStars.has(index);
           const respawning = respawningStars.has(index);
@@ -448,10 +451,16 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
                 style={
                   {
                     animationDuration: respawning
-                      ? `${star.duration}, ${STAR_RESPAWN_FADE_DURATION}ms`
-                      : star.duration,
-                    animationDelay: respawning ? `${star.delay}, 0ms` : star.delay,
-                    "--star-color": colorOrder[0],
+                      ? `${star.duration}, ${colorDuration}, ${STAR_RESPAWN_FADE_DURATION}ms`
+                      : `${star.duration}, ${colorDuration}`,
+                    animationDelay: respawning
+                      ? `${star.delay}, ${colorDelay}, 0ms`
+                      : `${star.delay}, ${colorDelay}`,
+                    "--star-color-1": colorOrder[0],
+                    "--star-color-2": colorOrder[1],
+                    "--star-color-3": colorOrder[2],
+                    "--star-color-4": colorOrder[3],
+                    "--star-color-5": colorOrder[4],
                     "--star-offset-x": "0px",
                     "--star-offset-y": "0px",
                   } as StarStyle
@@ -475,18 +484,7 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
                         }
                       />
                     ))
-                  : colorOrder.map((color, tintIndex) => (
-                      <span
-                        key={color}
-                        className="stars-bg__tint"
-                        style={{
-                          color,
-                          animationDuration: `${colorDuration}s`,
-                          // Tint n peaks n fifths into the cycle; negative, so it's under way
-                          animationDelay: `${colorDelay + (tintIndex * colorDuration) / colorOrder.length - colorDuration}s`,
-                        }}
-                      />
-                    ))}
+                  : null}
               </span>
             </span>
           );

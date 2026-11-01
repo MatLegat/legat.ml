@@ -666,12 +666,19 @@
     inset: 0;
     display: block;
     --star-hover-scale: 1;
-    /* The explosion's color; the star's own colors are its tints */
-    color: var(--star-color, #ffffff);
+    color: var(--star-color-1, #ffffff);
+    background: currentColor;
     border-radius: 9999px;
     mix-blend-mode: screen;
+    box-shadow: 0 0 10px currentColor;
+    filter: drop-shadow(0 0 14px currentColor);
     cursor: pointer;
-    animation: star-float 16s ease-in-out infinite alternate;
+    /* The color moves in small steps, a few times a second, not every frame: each change
+       repaints the star's glow. Separate layers per color, cross-faded, would avoid the
+       repaints but need several times the GPU memory, which made phones flicker. */
+    animation:
+      star-float 16s ease-in-out infinite alternate,
+      star-color-cycle 11s steps(12) infinite;
 
     &:hover {
       --star-hover-scale: 1.5;
@@ -686,10 +693,10 @@
     }
 
     &.respawning {
-      animation-name: star-float, star-respawn;
-      animation-timing-function: ease-in-out, ease-out;
-      animation-iteration-count: infinite, 1;
-      animation-direction: alternate, normal;
+      animation-name: star-float, star-color-cycle, star-respawn;
+      animation-timing-function: ease-in-out, steps(12), ease-out;
+      animation-iteration-count: infinite, infinite, 1;
+      animation-direction: alternate, normal, normal;
     }
 
     &.exploded {
@@ -720,26 +727,6 @@
       pointer-events: none;
       transform: none;
       animation: none;
-    }
-  }
-
-  /* One layer per color, cross-faded by opacity alone: the browser blends them on the GPU,
-     where animating the color itself repainted every star's glow on every frame */
-  .stars-bg__tint {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: currentColor;
-    box-shadow: 0 0 10px currentColor;
-    filter: drop-shadow(0 0 14px currentColor);
-    /* Added up, so mid-fade the two colors mix evenly at full brightness */
-    mix-blend-mode: plus-lighter;
-    opacity: 0;
-    pointer-events: none;
-    animation: star-tint 11s linear infinite;
-
-    &:first-child {
-      opacity: 1;
     }
   }
 
@@ -807,15 +794,29 @@
     }
   }
 
-  /* Each tint is shown for its fifth of the cycle, fading into the next one */
-  @keyframes star-tint {
-    0%,
-    100% {
-      opacity: 1;
+  @keyframes star-color-cycle {
+    0% {
+      color: var(--star-color-1, #ffffff);
     }
-    20%,
+
+    20% {
+      color: var(--star-color-2, #93c5fd);
+    }
+
+    40% {
+      color: var(--star-color-3, #a5b4fc);
+    }
+
+    60% {
+      color: var(--star-color-4, #f472b6);
+    }
+
     80% {
-      opacity: 0;
+      color: var(--star-color-5, #5eead4);
+    }
+
+    100% {
+      color: var(--star-color-1, #ffffff);
     }
   }
 
@@ -896,8 +897,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .stars-bg__star,
-    .stars-bg__tint {
+    .stars-bg__star {
       animation: none;
     }
 
