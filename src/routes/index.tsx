@@ -53,7 +53,7 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-type HistoryEntry = { id: number; cmd: string; output: ReactNode; path: string };
+type ScreenEntry = { id: number; cmd: string; output: ReactNode; path: string };
 
 function Index() {
   // The intro has typed everything out on its own
@@ -86,7 +86,8 @@ function Index() {
   const toastTimer = useRef(0);
   // The name banner, the hint line and the intro, until the screen is cleared
   const [showInitialContent, setShowInitialContent] = useState(true);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // What has been run since the screen was last cleared, with its output
+  const [entries, setEntries] = useState<ScreenEntry[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Dragging the terminal by its title bar (desktop only)
   const terminalShellRef = useRef<HTMLDivElement>(null);
@@ -94,9 +95,9 @@ function Index() {
   const terminalBarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const commandLineRef = useRef<CommandLineHandle>(null);
-  const historyId = useRef(0);
+  const entryId = useRef(0);
   // Submitted commands for ↑/↓ recall, seeded with the intro's commands. Kept across `clear`, like a shell.
-  const cmdHistory = useRef<string[]>(blocks.map(commandText));
+  const commandHistory = useRef<string[]>(blocks.map(commandText));
   const historyNav = useRef<HistoryNav>({ index: null, draft: "" });
   const allDoneRef = useRef(false);
 
@@ -114,9 +115,9 @@ function Index() {
 
   // Only output from commands the visitor runs scrolls into view; the intro never scrolls
   useEffect(() => {
-    if (history.length === 0) return;
+    if (entries.length === 0) return;
     scrollToBottom(reducedMotion ? "auto" : "smooth");
-  }, [history, reducedMotion]);
+  }, [entries, reducedMotion]);
 
   // A key pressed outside a text field can only come from a hardware keyboard (an on-screen
   // one is only up while typing in one). From then on the prompt may take focus by itself,
@@ -189,14 +190,14 @@ function Index() {
     setTheme((current) => THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
   }
 
-  function pushHistory(cmd: string, output: ReactNode, path = displayPath(cwd)) {
+  function addEntry(cmd: string, output: ReactNode, path = displayPath(cwd)) {
     // Taken now: the update below runs later, after any other entries pushed in the same go
-    const id = ++historyId.current;
-    setHistory((h) => [...h, { id, cmd, output, path }]);
+    const id = ++entryId.current;
+    setEntries((list) => [...list, { id, cmd, output, path }]);
   }
 
   function clearScreen() {
-    setHistory([]);
+    setEntries([]);
     setShowInitialContent(false);
     setLoginLine(null);
   }
@@ -349,7 +350,7 @@ function Index() {
   }, [windowState]);
 
   function submitCommand(raw: string) {
-    const result = runCommand(raw, { theme, cwd, history: cmdHistory.current });
+    const result = runCommand(raw, { theme, cwd, history: commandHistory.current });
     if (result.clear) {
       clearScreen();
       return;
@@ -357,9 +358,9 @@ function Index() {
     if (result.theme) setTheme(result.theme);
     if (result.replay) {
       setReplaying(true);
-      pushHistory(raw.trim(), <Replay onDone={() => setReplaying(false)} />);
+      addEntry(raw.trim(), <Replay onDone={() => setReplaying(false)} />);
     } else {
-      pushHistory(raw.trim(), result.output);
+      addEntry(raw.trim(), result.output);
     }
     if (result.cwd) setCwd(result.cwd);
   }
@@ -367,13 +368,13 @@ function Index() {
   // --- Prompt: the line itself lives in CommandLine, so typing doesn't re-render the page --
 
   function onSubmitLine(line: string) {
-    cmdHistory.current = addToHistory(cmdHistory.current, line);
+    commandHistory.current = addToHistory(commandHistory.current, line);
     historyNav.current = { index: null, draft: "" };
     submitCommand(line);
   }
 
   function onCancelLine(line: string) {
-    pushHistory(`${line}^C`, null);
+    addEntry(`${line}^C`, null);
     historyNav.current = { index: null, draft: "" };
   }
 
@@ -381,13 +382,13 @@ function Index() {
     const { value, caret, options } = complete(line, cwd, caretAt);
     if (value !== line) return { value, caret };
     if (options.length > 1) {
-      pushHistory(line, <div style={{ whiteSpace: "pre-wrap" }}>{options.join("  ")}</div>);
+      addEntry(line, <div style={{ whiteSpace: "pre-wrap" }}>{options.join("  ")}</div>);
     }
     return null;
   }
 
   function onHistoryKey(direction: "up" | "down", line: string) {
-    const moved = navigateHistory(cmdHistory.current, historyNav.current, line, direction);
+    const moved = navigateHistory(commandHistory.current, historyNav.current, line, direction);
     if (!moved) return null;
     const { value, ...nav } = moved;
     historyNav.current = nav;
@@ -538,13 +539,13 @@ function Index() {
 
                 {/* New results are read out by screen readers without moving focus */}
                 <div role="log" aria-live="polite" aria-label="Command output">
-                  {history.map((h) => (
-                    <div key={h.id} className="mb-4">
+                  {entries.map((entry) => (
+                    <div key={entry.id} className="mb-4">
                       <div>
-                        <Prompt path={h.path} />
-                        <span style={{ whiteSpace: "pre-wrap" }}>{h.cmd}</span>
+                        <Prompt path={entry.path} />
+                        <span style={{ whiteSpace: "pre-wrap" }}>{entry.cmd}</span>
                       </div>
-                      {h.output && <div className="mt-1">{h.output}</div>}
+                      {entry.output && <div className="mt-1">{entry.output}</div>}
                     </div>
                   ))}
                 </div>

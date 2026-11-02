@@ -48,7 +48,7 @@ export const blocks: Block[] = [
     ],
   },
   {
-    id: "cat",
+    id: "about",
     command: [{ text: "cat about.md" }],
     cmdSpeed: 20,
     output: [
@@ -72,13 +72,13 @@ export const blocks: Block[] = [
     output: skillsOutput(),
   },
   {
-    id: "exp",
+    id: "experience",
     command: [{ text: "git log --oneline experience" }],
     cmdSpeed: 20,
     output: [{ text: "\n" }, ...experienceOutput()],
   },
   {
-    id: "edu",
+    id: "education",
     command: [{ text: "cat education.txt" }],
     cmdSpeed: 20,
     output: [
@@ -241,14 +241,14 @@ const CONTACT_SCRIPT: Segment[] = [
 const FS: FsDir = dir({
   home: dir({
     [USER]: dir({
-      "about.md": { type: "file", content: blockOutput("cat") },
+      "about.md": { type: "file", content: blockOutput("about") },
       "contact.sh": {
         type: "file",
         content: CONTACT_SCRIPT,
         executable: true,
         run: blockOutput("contact"),
       },
-      "education.txt": { type: "file", content: blockOutput("edu") },
+      "education.txt": { type: "file", content: blockOutput("education") },
       skills: dir(
         Object.fromEntries(
           SKILLS.map(([name, techs]) => [name, dir({}, [{ text: `${techs}\n` }])]),
@@ -618,7 +618,7 @@ function execute(path: string, cwd: string, shell: string | null): CommandResult
 
 function git(args: string[]): CommandResult {
   const sub = args[0];
-  if (sub === "log") return block("exp");
+  if (sub === "log") return block("experience");
   if (!sub || sub === "--help" || sub === "help") {
     return print("usage: git log [--oneline] experience");
   }
@@ -758,13 +758,13 @@ export function runCommand(raw: string, ctx: ShellContext): CommandResult {
     case "whoami":
       return block("whoami");
     case "about":
-      return block("cat");
+      return block("about");
     case "skills":
       return block("skills");
     case "experience":
-      return block("exp");
+      return block("experience");
     case "education":
-      return block("edu");
+      return block("education");
     case "contact":
       return block("contact");
     default:

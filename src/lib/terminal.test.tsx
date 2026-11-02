@@ -52,10 +52,10 @@ describe("intro commands", () => {
   });
 
   it("supports the shortcut commands", () => {
-    expect(run("about")).toBe(blockText("cat"));
+    expect(run("about")).toBe(blockText("about"));
     expect(run("skills")).toBe(blockText("skills"));
-    expect(run("experience")).toBe(blockText("exp"));
-    expect(run("education")).toBe(blockText("edu"));
+    expect(run("experience")).toBe(blockText("experience"));
+    expect(run("education")).toBe(blockText("education"));
     expect(run("contact")).toBe(blockText("contact"));
   });
 
@@ -110,13 +110,13 @@ describe("cat", () => {
   it.each(["cat about.md", "cat ./about.md", "cat ~/about.md", 'cat "about.md"'])(
     "`%s` reads the file",
     (cmd) => {
-      expect(run(cmd)).toBe(blockText("cat"));
+      expect(run(cmd)).toBe(blockText("about"));
     },
   );
 
   it("concatenates several files", () => {
     expect(run("cat about.md education.txt")).toBe(
-      `${blockText("cat")}\n${blockText("edu")}`.replace(/\n+$/, ""),
+      `${blockText("about")}\n${blockText("education")}`.replace(/\n+$/, ""),
     );
   });
 
@@ -130,7 +130,7 @@ describe("cat", () => {
   it("reports directories and missing files, and keeps going", () => {
     expect(run("cat skills")).toBe("cat: skills: Is a directory");
     expect(run("cat nope.txt about.md")).toBe(
-      `cat: nope.txt: No such file or directory\n${blockText("cat")}`,
+      `cat: nope.txt: No such file or directory\n${blockText("about")}`,
     );
     expect(run("cat about.md/")).toBe("cat: about.md/: Not a directory");
   });
@@ -213,7 +213,7 @@ describe("cd and pwd", () => {
   it("resolves other commands from the current directory", () => {
     const inSkills = { cwd: `${HOME}/skills` };
     expect(run("ls", inSkills)).toBe(blockText("skills"));
-    expect(run("cat ../about.md", inSkills)).toBe(blockText("cat"));
+    expect(run("cat ../about.md", inSkills)).toBe(blockText("about"));
     expect(run("pwd", inSkills)).toBe(`${HOME}/skills`);
   });
 
@@ -250,7 +250,7 @@ describe("running files", () => {
 
 describe("other commands", () => {
   it("git only supports log", () => {
-    expect(run("git log")).toBe(blockText("exp"));
+    expect(run("git log")).toBe(blockText("experience"));
     expect(run("git status")).toContain("git: 'status' is not available here");
     expect(run("git")).toContain("usage: git log");
   });
