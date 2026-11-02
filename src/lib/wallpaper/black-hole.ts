@@ -335,6 +335,46 @@ export function createBlackHole({
     );
   };
 
+  /** Switching off, part 1: the hole shrinks and flares; anything still falling is swallowed. */
+  const implode = () => {
+    hole.animate(
+      [
+        { transform: "scale(1)", filter: "brightness(1)" },
+        { transform: "scale(0.22)", filter: "brightness(2.6)" },
+      ],
+      { duration: IMPLODE_MS, easing: "cubic-bezier(0.6, 0, 1, 0.6)", fill: "forwards" },
+    );
+    bodies.forEach((body) => {
+      if (body.mode === "absorbed") return;
+      const el = body.star.el;
+      el.animate([{ opacity: el.style.opacity || 1 }, { opacity: 0 }], {
+        duration: IMPLODE_MS * 0.8,
+        easing: "ease-in",
+      });
+      swallow(body);
+    });
+  };
+
+  /** Part 2: flash, shockwaves, and every star blasted back out to its place. */
+  const explode = () => {
+    hole.animate(
+      [
+        { transform: "scale(0.22)", opacity: 1 },
+        { transform: "scale(0)", opacity: 0 },
+      ],
+      { duration: 120, fill: "forwards" },
+    );
+    explosionEffects();
+    bodies.forEach((body) =>
+      startPath(body, "burst", {
+        from: { r: horizonR * 0.15, theta: 0 },
+        delay: body.random() * 0.08,
+        duration: 0.9 + body.random() * 0.6,
+      }),
+    );
+    wake();
+  };
+
   const finishRelease = () => {
     cleanup();
     const done = onReleased;
@@ -387,46 +427,8 @@ export function createBlackHole({
         return;
       }
 
-      // 1. Implosion: the hole shrinks and flares; anything still falling is swallowed
-      hole.animate(
-        [
-          { transform: "scale(1)", filter: "brightness(1)" },
-          { transform: "scale(0.22)", filter: "brightness(2.6)" },
-        ],
-        { duration: IMPLODE_MS, easing: "cubic-bezier(0.6, 0, 1, 0.6)", fill: "forwards" },
-      );
-      bodies.forEach((body) => {
-        if (body.mode === "absorbed") return;
-        const el = body.star.el;
-        el.animate([{ opacity: el.style.opacity || 1 }, { opacity: 0 }], {
-          duration: IMPLODE_MS * 0.8,
-          easing: "ease-in",
-        });
-        swallow(body);
-      });
-
-      // 2. Explosion: flash, shockwaves, and every star blasted back out to its place
-      explodeTimer = window.setTimeout(() => {
-        hole.animate(
-          [
-            { transform: "scale(0.22)", opacity: 1 },
-            { transform: "scale(0)", opacity: 0 },
-          ],
-          {
-            duration: 120,
-            fill: "forwards",
-          },
-        );
-        explosionEffects();
-        bodies.forEach((body) =>
-          startPath(body, "burst", {
-            from: { r: horizonR * 0.15, theta: 0 },
-            delay: body.random() * 0.08,
-            duration: 0.9 + body.random() * 0.6,
-          }),
-        );
-        wake();
-      }, IMPLODE_MS);
+      implode();
+      explodeTimer = window.setTimeout(explode, IMPLODE_MS);
     },
 
     destroy() {
