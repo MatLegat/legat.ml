@@ -48,11 +48,17 @@ npm run build    # production build for Vercel
 
 ```
 src/
-  routes/index.tsx           the page: terminal, windows, dock, focus handling
-  lib/terminal.tsx           CV content, fake filesystem, command parser, completion, history
-  components/CommandLine.tsx the prompt and its block cursor
-  components/Transcript.tsx  the typed intro and `replay`
-  components/StarsBackground.tsx
-  lib/wallpaper/             black hole effect and orbit math
-  hooks/                     viewport fitting, window dragging, reduced motion
+  routes/index.tsx                 the page: windows, dock, wallpaper and focus between them
+  routes/__root.tsx                page shell, meta tags, the 404 page
+  components/TerminalWindow.tsx    the terminal: title bar, intro, command output, prompt
+  components/CommandLine.tsx       the prompt and its block cursor
+  components/Transcript.tsx        the typed intro and `replay`
+  components/BrowserWindow.tsx     the browser window with favorites and the CV
+  components/WindowControls.tsx    window buttons and the dock
+  components/StarsBackground.tsx   the stars
+  hooks/use-terminal-session.tsx   shell state: screen, current folder, theme, history
+  hooks/use-wallpaper.ts           switching between the stars and the black hole
+  hooks/                           also viewport fitting, window dragging, reduced motion
+  lib/terminal/                    CV content, fake filesystem, shell commands, completion, history
+  lib/wallpaper/                   black hole effect and orbit math
 ```
