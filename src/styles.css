@@ -285,7 +285,9 @@
     border-radius: 0;
   }
 
-  /* Short screens; data-short (use-fit-visible-viewport) also catches the iOS keyboard */
+  /* Short screens; data-short (use-fit-visible-viewport) also catches the iOS keyboard.
+     The same rule is written once per trigger, like the terminal's short-screen rules
+     below: keep the two copies in sync. */
   @media (max-height: 324px) {
     .browser-shell {
       inset: 0.5rem 0.5rem 4.5rem;
@@ -324,7 +326,9 @@
       visibility 0s 150ms;
   }
 
-  /* Green button: the window fills the screen */
+  /* Green button: the window fills the screen.
+     The page's own classes include `pb-0!`, an !important utility, so overriding its
+     padding needs !important too; the doubled class outranks that utility. */
   .terminal-page.terminal-page[data-zoomed] {
     padding: 0 !important;
   }
@@ -381,7 +385,11 @@
      and may shrink below its usual minimum to keep the prompt visible. The dock only
      shows while the terminal is minimized or closed. data-short (set from the visible
      height by use-fit-visible-viewport) also catches the iOS keyboard, which the media
-     query doesn't see; the media query covers the first paint, before that runs. */
+     query doesn't see; the media query covers the first paint, before that runs.
+     So the same rules are written twice, once per trigger: keep the two copies in sync.
+     :where() adds no specificity, so both copies weigh the same and the full-screen
+     ([data-zoomed]) rules still win over them. The doubled .terminal-page is explained
+     at the full-screen rule above. */
   @media (max-height: 324px) {
     .dock--terminal-open {
       display: none;
