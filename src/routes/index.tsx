@@ -3,11 +3,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BrowserWindow, type BrowserHandle } from "@/components/BrowserWindow";
 import { CommandLine, type CommandLineHandle } from "@/components/CommandLine";
 import { Prompt, Replay, Transcript } from "@/components/Transcript";
-import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
-import { Dock, TrafficLights, type Wallpaper } from "@/components/WindowControls";
-import type { BlackHole } from "@/lib/wallpaper/black-hole";
+import StarsBackground from "@/components/StarsBackground";
+import { Dock, TrafficLights } from "@/components/WindowControls";
 import { useFitVisibleViewport } from "@/hooks/use-fit-visible-viewport";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useWallpaper } from "@/hooks/use-wallpaper";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
 import type { WindowState } from "@/lib/window-state";
@@ -90,14 +90,14 @@ function Index() {
   const browserButtonRef = useRef<HTMLButtonElement>(null);
   const browserRef = useRef<BrowserHandle>(null);
   const sessionStart = useRef<Date | null>(null);
-  const starsRef = useRef<StarsHandle>(null);
-  const [wallpaper, setWallpaper] = useState<Wallpaper>("stars");
-  const [wallpaperBusy, setWallpaperBusy] = useState(false);
-  const [wallpaperStatus, setWallpaperStatus] = useState("");
-  const wallpaperBusyRef = useRef(false);
-  const blackHoleRef = useRef<BlackHole | null>(null);
-  const [toast, setToast] = useState({ text: "", visible: false });
-  const toastTimer = useRef(0);
+  const {
+    starsRef,
+    wallpaper,
+    busy: wallpaperBusy,
+    status: wallpaperStatus,
+    toast,
+    toggle: toggleWallpaper,
+  } = useWallpaper();
   // The name banner, the hint line and the intro, until the screen is cleared
   const [showInitialContent, setShowInitialContent] = useState(true);
   // What has been run since the screen was last cleared, with its output
@@ -259,58 +259,6 @@ function Index() {
   });
 
   // --- Wallpaper -------------------------------------------------------------------
-
-  function showToast(text: string) {
-    setToast({ text, visible: true });
-    window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast((t) => ({ ...t, visible: false })), 4000);
-  }
-  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
-
-  function setBusy(busy: boolean) {
-    wallpaperBusyRef.current = busy;
-    setWallpaperBusy(busy);
-  }
-
-  async function toggleWallpaper() {
-    const stars = starsRef.current;
-    if (wallpaperBusyRef.current || !stars?.layer) return;
-    setBusy(true);
-
-    if (wallpaper === "stars") {
-      // The effect's code and styles are downloaded only now, on first use
-      let createBlackHole: typeof import("@/lib/wallpaper/black-hole").createBlackHole;
-      try {
-        ({ createBlackHole } = await import("@/lib/wallpaper/black-hole"));
-      } catch {
-        setWallpaperStatus("Couldn't load the black hole wallpaper. Try again.");
-        setBusy(false);
-        return;
-      }
-      // The page may have gone away while downloading
-      if (starsRef.current !== stars || !stars.layer?.isConnected) return;
-      const hole = createBlackHole({ layer: stars.layer, stars: stars.takeControl() });
-      blackHoleRef.current = hole;
-      hole.consume();
-      setWallpaper("black-hole");
-      setWallpaperStatus("Black hole wallpaper on");
-      setBusy(false);
-      return;
-    }
-
-    const done = () => {
-      stars.releaseControl();
-      blackHoleRef.current = null;
-      setWallpaper("stars");
-      setWallpaperStatus("Star wallpaper on. Hint: click on any star");
-      showToast("Hint: click on any star");
-      setBusy(false);
-    };
-    if (blackHoleRef.current) blackHoleRef.current.release(done);
-    else done();
-  }
-
-  useEffect(() => () => blackHoleRef.current?.destroy(), []);
 
   // The dock's wallpaper button first minimizes every open window, so the change is in full view
   const dockWallpaperRef = useRef<HTMLButtonElement>(null);
