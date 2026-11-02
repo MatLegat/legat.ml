@@ -9,7 +9,7 @@ import {
   type Ref,
   type RefObject,
 } from "react";
-import { Prompt } from "@/components/Transcript";
+import { Prompt } from "@/components/Prompt";
 
 export type CommandLineHandle = {
   /** Replaces the line, putting the caret at the end */

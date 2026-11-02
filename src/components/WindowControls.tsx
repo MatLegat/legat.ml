@@ -192,6 +192,53 @@ function CompassGlyph({ className }: { className?: string }) {
 const dockDot = (on: boolean) =>
   `absolute -bottom-[8px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-white/80 ${on ? "" : "invisible"}`;
 
+type DockButtonProps = {
+  /** shown in the tooltip */
+  name: string;
+  /** what pressing it does, for screen readers */
+  label: string;
+  /** shows the dot under the icon */
+  running: boolean;
+  onClick: () => void;
+  buttonRef?: Ref<HTMLButtonElement>;
+  /** extra classes for the icon tile */
+  tileClassName?: string;
+  /** a toggle that is on */
+  pressed?: boolean;
+  /** busy: the click is ignored for now */
+  busy?: boolean;
+  children: ReactNode;
+};
+
+/** An app icon in the dock, with its tooltip and running dot. */
+function DockButton({
+  name,
+  label,
+  running,
+  onClick,
+  buttonRef,
+  tileClassName,
+  pressed,
+  busy,
+  children,
+}: DockButtonProps) {
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={pressed}
+      aria-disabled={busy || undefined}
+      className={`group relative flex flex-col items-center focus-visible:outline-none ${busy ? "cursor-wait" : ""}`}
+    >
+      <span className={dockTooltip}>{name}</span>
+      <span className={tileClassName ? `${dockTile} ${tileClassName}` : dockTile}>{children}</span>
+      <span className={dockDot(running)} aria-hidden="true" />
+    </button>
+  );
+}
+
 /** The dock at the bottom of the screen: Terminal, Browser, Wallpaper. */
 export function Dock({
   terminal,
@@ -214,45 +261,36 @@ export function Dock({
       inert={hidden}
     >
       <div className="pointer-events-auto flex gap-2.5 rounded-2xl border border-white/10 bg-white/10 p-2.5 shadow-2xl backdrop-blur-md">
-        <button
-          ref={buttonRef}
-          type="button"
+        <DockButton
+          name="Terminal"
+          label={openLabel("terminal", terminal)}
+          running={terminal !== "closed"}
           onClick={onOpen}
-          aria-label={openLabel("terminal", terminal)}
-          className="group relative flex flex-col items-center focus-visible:outline-none"
+          buttonRef={buttonRef}
+          tileClassName="font-mono text-sm text-[var(--term-green)]"
         >
-          <span className={dockTooltip}>Terminal</span>
-          <span className={`${dockTile} font-mono text-sm text-[var(--term-green)]`}>&gt;_</span>
-          <span className={dockDot(terminal !== "closed")} aria-hidden="true" />
-        </button>
-        <button
-          ref={browserButtonRef}
-          type="button"
+          &gt;_
+        </DockButton>
+        <DockButton
+          name="Browser"
+          label={openLabel("browser", browser)}
+          running={browser !== "closed"}
           onClick={onOpenBrowser}
-          aria-label={openLabel("browser", browser)}
-          className="group relative flex flex-col items-center focus-visible:outline-none"
+          buttonRef={browserButtonRef}
         >
-          <span className={dockTooltip}>Browser</span>
-          <span className={dockTile}>
-            <CompassGlyph className="h-9 w-9" />
-          </span>
-          <span className={dockDot(browser !== "closed")} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          ref={wallpaperButtonRef}
+          <CompassGlyph className="h-9 w-9" />
+        </DockButton>
+        <DockButton
+          name="Wallpaper"
+          label={wallpaperLabel(wallpaper)}
+          running={wallpaper === "black-hole"}
           onClick={onToggleWallpaper}
-          aria-label={wallpaperLabel(wallpaper)}
-          aria-pressed={wallpaper === "black-hole"}
-          aria-disabled={busy || undefined}
-          className={`group relative flex flex-col items-center focus-visible:outline-none ${busy ? "cursor-wait" : ""}`}
+          buttonRef={wallpaperButtonRef}
+          pressed={wallpaper === "black-hole"}
+          busy={busy}
         >
-          <span className={dockTooltip}>Wallpaper</span>
-          <span className={dockTile}>
-            <BlackHoleGlyph className="h-8 w-8" />
-          </span>
-          <span className={dockDot(wallpaper === "black-hole")} aria-hidden="true" />
-        </button>
+          <BlackHoleGlyph className="h-8 w-8" />
+        </DockButton>
       </div>
     </div>
   );

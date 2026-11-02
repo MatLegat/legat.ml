@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "@tanstack/react-router";
 
+import { Prompt } from "../components/Prompt";
 import StarsBackground from "../components/StarsBackground";
 import faviconSvg from "../assets/favicon.svg?url";
 import portraitJpg from "../assets/matteus-portrait.jpg?url";
@@ -22,15 +23,6 @@ function NotFoundComponent() {
   } catch {
     // Malformed escapes: show the path as it is
   }
-  const prompt = (
-    <span aria-hidden="true">
-      <span style={{ color: "var(--term-prompt)" }}>matteus@legat</span>
-      <span className="text-term-dim">:</span>
-      <span className="text-term-cyan">~</span>
-      <span className="text-term-dim">$ </span>
-    </span>
-  );
-
   return (
     <>
       <StarsBackground />
@@ -41,7 +33,7 @@ function NotFoundComponent() {
         >
           <h1 className="sr-only">Page not found</h1>
           <div className="break-all" style={{ whiteSpace: "pre-wrap" }}>
-            {prompt}
+            <Prompt />
             {command}
           </div>
           <div className="break-all text-term-red" style={{ whiteSpace: "pre-wrap" }}>
@@ -55,7 +47,7 @@ function NotFoundComponent() {
             to go home
           </div>
           <div className="mt-4">
-            {prompt}
+            <Prompt />
             <span className="cursor-block" aria-hidden="true" />
           </div>
         </div>

@@ -1,19 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { Prompt } from "@/components/Prompt";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { blocks as introBlocks, COMMAND_SPEED, FAST, type Block } from "@/lib/terminal/content";
-
-// Hidden from screen readers: repeating "matteus@legat:~$" before every line is noise
-export function Prompt({ path = "~" }: { path?: string }) {
-  return (
-    <span aria-hidden="true">
-      <span style={{ color: "var(--term-prompt)" }}>matteus@legat</span>
-      <span className="text-term-dim">:</span>
-      <span className="text-term-cyan">{path}</span>
-      <span className="text-term-dim">$ </span>
-    </span>
-  );
-}
 
 export function StaticBlock({ block }: { block: Block }) {
   return (
