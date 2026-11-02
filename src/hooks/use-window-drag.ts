@@ -64,6 +64,7 @@ export function useWindowDrag({ shell, frame, handle, state, zoomed, onStart }: 
 
     let press: { x: number; y: number; from: Offset; id: number } | null = null;
     let geometry: DragGeometry | null = null;
+    // Past the threshold, so it's a drag and not a click. Only set once geometry is measured.
     let moving = false;
     let pending: Offset | null = null;
     let frameId = 0;
@@ -95,15 +96,22 @@ export function useWindowDrag({ shell, frame, handle, state, zoomed, onStart }: 
         if (!geometry) return;
         moving = true;
       }
+      // Measured above before `moving` was set, so it's there
       pending = clampWindowOffset({ x: press.from.x + dx, y: press.from.y + dy }, geometry!);
       if (pending && !frameId) frameId = requestAnimationFrame(write);
     };
 
-    const end = (cancel: boolean) => {
+    /** Ends the press. After a drag, "keep" leaves the window where it was dragged and "undo"
+     * puts it back where it started (Escape). */
+    const finishDrag = (outcome: "keep" | "undo") => {
       if (moving && press) {
         cancelAnimationFrame(frameId);
         frameId = 0;
-        setOffset(shell.current, offset, cancel ? press.from : (pending ?? offset.current));
+        setOffset(
+          shell.current,
+          offset,
+          outcome === "undo" ? press.from : (pending ?? offset.current),
+        );
         // The release after a drag isn't a click on whatever is under the pointer. Only that
         // release: if no click follows, the guard is gone before the next real one.
         bar.addEventListener("click", swallow, { capture: true, once: true });
@@ -113,28 +121,28 @@ export function useWindowDrag({ shell, frame, handle, state, zoomed, onStart }: 
       moving = false;
       pending = null;
     };
-    const onUp = () => end(false);
-    const onLost = () => end(false);
+    // Released, or the pointer was lost (capture lost, cancelled, window blurred)
+    const onRelease = () => finishDrag("keep");
     const onKey = (e: KeyboardEvent) => {
-      if (moving && e.key === "Escape") end(true);
+      if (moving && e.key === "Escape") finishDrag("undo");
     };
 
     bar.addEventListener("pointerdown", onDown);
     bar.addEventListener("pointermove", onMove);
-    bar.addEventListener("pointerup", onUp);
-    bar.addEventListener("pointercancel", onLost);
-    bar.addEventListener("lostpointercapture", onLost);
+    bar.addEventListener("pointerup", onRelease);
+    bar.addEventListener("pointercancel", onRelease);
+    bar.addEventListener("lostpointercapture", onRelease);
     window.addEventListener("keydown", onKey);
-    window.addEventListener("blur", onLost);
+    window.addEventListener("blur", onRelease);
     return () => {
-      end(false);
+      finishDrag("keep");
       bar.removeEventListener("pointerdown", onDown);
       bar.removeEventListener("pointermove", onMove);
-      bar.removeEventListener("pointerup", onUp);
-      bar.removeEventListener("pointercancel", onLost);
-      bar.removeEventListener("lostpointercapture", onLost);
+      bar.removeEventListener("pointerup", onRelease);
+      bar.removeEventListener("pointercancel", onRelease);
+      bar.removeEventListener("lostpointercapture", onRelease);
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("blur", onLost);
+      window.removeEventListener("blur", onRelease);
     };
   }, [enabled, shell, frame, handle]);
 }
