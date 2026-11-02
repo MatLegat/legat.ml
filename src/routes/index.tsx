@@ -52,15 +52,6 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const PROMPT = (
-  <>
-    <span className="text-term-green">matteus@legat</span>
-    <span className="text-term-dim">:</span>
-    <span className="text-term-cyan">~</span>
-    <span className="text-term-dim">$ </span>
-  </>
-);
-
 type HistoryEntry = { id: number; cmd: string; output: ReactNode; path: string };
 
 function Index() {

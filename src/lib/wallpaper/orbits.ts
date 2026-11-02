@@ -19,12 +19,6 @@ export function fromPolar(p: Polar, center: Point): Point {
   return { x: center.x + p.r * Math.cos(p.theta), y: center.y + p.r * Math.sin(p.theta) };
 }
 
-/** Wraps an angle into [-π, π). */
-export function shortestAngle(a: number) {
-  const wrapped = (a + Math.PI) % (2 * Math.PI);
-  return (wrapped < 0 ? wrapped + 2 * Math.PI : wrapped) - Math.PI;
-}
-
 /**
  * Position on the inward spiral at progress `u` (0..1). The fall accelerates, and the
  * angle winds faster as the star gets closer (logarithmic spiral), capped at `minR`.

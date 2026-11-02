@@ -5,7 +5,7 @@ import { clampWindowOffset, type DragGeometry, type Offset } from "@/lib/window-
 // Desktop only: a mouse or trackpad and room to move. Touch keeps the fixed layout.
 const DRAG_QUERY = "(min-width: 768px) and (hover: hover) and (pointer: fine)";
 // Pressing these in the title bar does what they do; it never starts a drag
-const NOT_A_HANDLE = "button, a, input, textarea, select, [contenteditable], [data-no-drag]";
+const NOT_A_HANDLE = "button, a, input, textarea, select, [contenteditable]";
 // Movement before a press becomes a drag, so clicks and double-click zoom still work
 const DRAG_THRESHOLD = 4;
 

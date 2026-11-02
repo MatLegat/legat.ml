@@ -140,12 +140,6 @@ function BlackHoleGlyph({ className }: { className?: string }) {
   );
 }
 
-type WallpaperButtonProps = {
-  wallpaper: Wallpaper;
-  busy: boolean;
-  onToggle: () => void;
-};
-
 const dockTile =
   "grid h-12 w-12 place-items-center rounded-xl border border-white/15 bg-gradient-to-b from-[#3a3a3c] to-[#1c1c1e] shadow-lg transition-transform group-hover:-translate-y-1 group-focus-visible:-translate-y-1 group-focus-visible:ring-2 group-focus-visible:ring-[var(--term-prompt)]";
 const dockTooltip =
@@ -161,9 +155,13 @@ type DockProps = {
   onOpenBrowser: () => void;
   browserButtonRef?: Ref<HTMLButtonElement>;
   wallpaperButtonRef?: Ref<HTMLButtonElement>;
+  wallpaper: Wallpaper;
+  /** the wallpaper is switching: the button waits */
+  busy: boolean;
+  onToggleWallpaper: () => void;
   /** out of the way while a window is full screen */
   hidden?: boolean;
-} & Omit<WallpaperButtonProps, "onToggle"> & { onToggleWallpaper: () => void };
+};
 
 const openLabel = (app: string, state: "open" | "minimized" | "closed") =>
   `${state === "minimized" ? "Restore" : state === "open" ? "Show" : "Open"} ${app}`;

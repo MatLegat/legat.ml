@@ -1,14 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type Segment = {
   text: string;
   className?: string;
   /** chars per second override */
   speed?: number;
-  /** delay (ms) before this segment starts typing */
-  delay?: number;
-  /** render text but don't animate */
-  instant?: boolean;
   /** render as a link */
   href?: string;
 };
@@ -47,32 +43,18 @@ type Props = {
   onDone?: () => void;
   /** start typing only when true */
   start?: boolean;
-  className?: string;
-  /** content rendered after typing completes */
-  trailing?: ReactNode;
 };
 
-/** Moves past finished, empty and instant segments to the next character to type. */
+/** Moves past finished and empty segments to the next character to type. */
 function settle(segments: Segment[], segIndex: number, charIndex: number) {
-  while (
-    segIndex < segments.length &&
-    (segments[segIndex].instant || charIndex >= segments[segIndex].text.length)
-  ) {
+  while (segIndex < segments.length && charIndex >= segments[segIndex].text.length) {
     segIndex += 1;
     charIndex = 0;
   }
   return { segIndex, charIndex };
 }
 
-export function Typewriter({
-  segments,
-  speed = 90,
-  cursor = true,
-  onDone,
-  start = true,
-  className,
-  trailing,
-}: Props) {
+export function Typewriter({ segments, speed = 90, cursor = true, onDone, start = true }: Props) {
   // Position of the next character to type. It always points at a character still to be
   // typed, or past the last segment once everything is shown.
   const [{ segIndex, charIndex }, setPosition] = useState(() => settle(segments, 0, 0));
@@ -86,17 +68,17 @@ export function Typewriter({
     onDone?.();
   }, [start, done, onDone]);
 
-  // Type the next character after this segment's speed (or its start delay)
+  // Type the next character at this segment's speed
   useEffect(() => {
     if (!start || done) return;
     const seg = segments[segIndex];
-    const wait = charIndex === 0 && seg.delay ? seg.delay : 1000 / (seg.speed ?? speed);
+    const wait = 1000 / (seg.speed ?? speed);
     const t = setTimeout(() => setPosition(settle(segments, segIndex, charIndex + 1)), wait);
     return () => clearTimeout(t);
   }, [start, done, segments, segIndex, charIndex, speed]);
 
   return (
-    <span className={className}>
+    <span>
       {segments.map((seg, i) => {
         let visible = "";
         if (i < segIndex) visible = seg.text;
@@ -105,7 +87,6 @@ export function Typewriter({
         return <SegmentText key={i} seg={seg} text={visible} />;
       })}
       {cursor && !done && <span className="cursor-block" aria-hidden />}
-      {done && trailing}
     </span>
   );
 }

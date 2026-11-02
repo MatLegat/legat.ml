@@ -92,7 +92,7 @@ export function Transcript({ blocks, skipped, onDone }: TranscriptProps) {
                   <div>
                     <Typewriter
                       segments={b.output}
-                      speed={b.outSpeed ?? FAST}
+                      speed={FAST}
                       cursor={isActive && !outDone[i]}
                       start={cmdDone[i]}
                       onDone={() => {

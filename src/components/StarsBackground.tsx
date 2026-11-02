@@ -180,7 +180,7 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
 
   // Pointer repulsion; off with reduced motion (the stars don't float then either)
   useEffect(() => {
-    if (typeof window === "undefined" || reducedMotion) {
+    if (reducedMotion) {
       return;
     }
 

@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  fromPolar,
-  infall,
-  burst,
-  seededRandom,
-  shortestAngle,
-  toPolar,
-  type Polar,
-} from "./orbits";
+import { fromPolar, infall, burst, seededRandom, toPolar, type Polar } from "./orbits";
 
 const center = { x: 500, y: 300 };
 
@@ -17,13 +9,6 @@ describe("polar helpers", () => {
     const back = fromPolar(toPolar(p, center), center);
     expect(back.x).toBeCloseTo(p.x);
     expect(back.y).toBeCloseTo(p.y);
-  });
-
-  it("wraps angles into [-π, π)", () => {
-    expect(shortestAngle(0)).toBeCloseTo(0);
-    expect(shortestAngle(3 * Math.PI)).toBeCloseTo(-Math.PI);
-    expect(shortestAngle(-Math.PI / 2 + 4 * Math.PI)).toBeCloseTo(-Math.PI / 2);
-    expect(Math.abs(shortestAngle(7))).toBeLessThanOrEqual(Math.PI);
   });
 });
 

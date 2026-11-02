@@ -13,8 +13,6 @@ export type Block = {
   output: Segment[];
   /** speed for command typing */
   cmdSpeed?: number;
-  /** speed for output typing */
-  outSpeed?: number;
 };
 
 export const FAST = 600;
