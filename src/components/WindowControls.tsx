@@ -1,4 +1,5 @@
 import { useId, type ReactNode, type Ref } from "react";
+import type { WindowState } from "@/lib/window-state";
 
 type LightProps = {
   label: string;
@@ -147,11 +148,11 @@ const dockTooltip =
 
 type DockProps = {
   /** terminal window state: a dot shows while it's running (open or minimized) */
-  terminal: "open" | "minimized" | "closed";
+  terminal: WindowState;
   onOpen: () => void;
   buttonRef?: Ref<HTMLButtonElement>;
   /** browser window state: a dot shows while it's open or minimized */
-  browser: "open" | "minimized" | "closed";
+  browser: WindowState;
   onOpenBrowser: () => void;
   browserButtonRef?: Ref<HTMLButtonElement>;
   wallpaperButtonRef?: Ref<HTMLButtonElement>;
@@ -163,7 +164,7 @@ type DockProps = {
   hidden?: boolean;
 };
 
-const openLabel = (app: string, state: "open" | "minimized" | "closed") =>
+const openLabel = (app: string, state: WindowState) =>
   `${state === "minimized" ? "Restore" : state === "open" ? "Show" : "Open"} ${app}`;
 
 /** A compass, like a browser's icon */

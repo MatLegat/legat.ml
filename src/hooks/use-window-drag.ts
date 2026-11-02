@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { clampWindowOffset, type DragGeometry, type Offset } from "@/lib/window-drag";
+import type { WindowState } from "@/lib/window-state";
 
 // Desktop only: a mouse or trackpad and room to move. Touch keeps the fixed layout.
 const DRAG_QUERY = "(min-width: 768px) and (hover: hover) and (pointer: fine)";
@@ -16,7 +17,7 @@ type Options = {
   frame: RefObject<HTMLElement | null>;
   /** the title bar to grab */
   handle: RefObject<HTMLElement | null>;
-  state: "open" | "minimized" | "closed";
+  state: WindowState;
   zoomed: boolean;
   /** called when a press starts on the handle (to bring the window forward) */
   onStart?: () => void;

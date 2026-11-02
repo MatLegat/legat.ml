@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { BrowserWindow, type BrowserHandle, type WindowState } from "@/components/BrowserWindow";
+import { BrowserWindow, type BrowserHandle } from "@/components/BrowserWindow";
 import { CommandLine, type CommandLineHandle } from "@/components/CommandLine";
 import { Prompt, Replay, Transcript } from "@/components/Transcript";
 import StarsBackground, { type StarsHandle } from "@/components/StarsBackground";
@@ -10,6 +10,7 @@ import { useFitVisibleViewport } from "@/hooks/use-fit-visible-viewport";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
+import type { WindowState } from "@/lib/window-state";
 import {
   addToHistory,
   blocks,
@@ -64,7 +65,7 @@ function Index() {
   const [cwd, setCwd] = useState(HOME);
   const reducedMotion = useReducedMotion();
   useFitVisibleViewport();
-  const [windowState, setWindowState] = useState<"open" | "minimized" | "closed">("open");
+  const [windowState, setWindowState] = useState<WindowState>("open");
   const [zoomed, setZoomed] = useState(false);
   const [loginLine, setLoginLine] = useState<string | null>(null);
   const dockButtonRef = useRef<HTMLButtonElement>(null);

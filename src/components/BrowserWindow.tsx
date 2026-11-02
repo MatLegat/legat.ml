@@ -11,8 +11,7 @@ import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
 import { TrafficLights } from "@/components/WindowControls";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
-
-export type WindowState = "open" | "minimized" | "closed";
+import type { WindowState } from "@/lib/window-state";
 
 type Favorite = {
   name: string;
