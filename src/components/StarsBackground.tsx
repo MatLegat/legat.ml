@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type Ref,
+  type RefObject,
 } from "react";
 import { flushSync } from "react-dom";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -191,119 +192,7 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
 
   useEffect(() => () => timersRef.current.forEach((id) => window.clearTimeout(id)), []);
 
-  // Pointer repulsion; off with reduced motion (the stars don't float then either)
-  useEffect(() => {
-    if (reducedMotion) {
-      return;
-    }
-
-    const pointerTarget = { x: -9999, y: -9999, active: false };
-    const pointerCurrent = { x: -9999, y: -9999 };
-
-    // The loop only runs while something moves: it starts on pointer activity and stops
-    // once the stars have settled, so an idle page does no per-frame work
-    let frameId = 0;
-    const wake = () => {
-      if (controlledRef.current) return;
-      if (!frameId) frameId = window.requestAnimationFrame(animate);
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      pointerTarget.x = event.clientX;
-      pointerTarget.y = event.clientY;
-      pointerTarget.active = true;
-      wake();
-    };
-
-    const resetPointer = () => {
-      pointerTarget.x = -9999;
-      pointerTarget.y = -9999;
-      pointerTarget.active = false;
-      wake();
-    };
-
-    const updateStarOffset = (element: HTMLSpanElement, star: StarDefinition, index: number) => {
-      if (explodedStarsRef.current.has(index)) {
-        setStarOffset(element, "0px", "0px");
-        return;
-      }
-
-      // Stars are placed within the wallpaper, which can be taller than the window
-      const container = containerRef.current;
-      const baseX = (star.x / 100) * (container?.clientWidth ?? 0);
-      const baseY = (star.y / 100) * (container?.clientHeight ?? 0);
-      const dx = baseX - pointerCurrent.x;
-      const dy = baseY - pointerCurrent.y;
-      const distance = Math.hypot(dx, dy);
-
-      if (!pointerTarget.active || distance >= REPULSION_RADIUS || distance === 0) {
-        setStarOffset(element, "0px", "0px");
-        return;
-      }
-
-      const calm = Math.min(1, distance / REPULSION_CALM_RADIUS);
-      const force = (1 - distance / REPULSION_RADIUS) ** 2 * calm;
-      const layerStrength = star.layer === "near" ? 1 : 0.6;
-      const magnitude = force * REPULSION_STRENGTH * layerStrength;
-      const offsetX = (dx / distance) * magnitude;
-      const offsetY = (dy / distance) * magnitude;
-
-      setStarOffset(element, `${offsetX.toFixed(2)}px`, `${offsetY.toFixed(2)}px`);
-    };
-
-    function animate() {
-      // An effect took over the stars (takeControl reset their offsets): stop here
-      if (controlledRef.current) {
-        frameId = 0;
-        return;
-      }
-      pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * POINTER_LERP;
-      pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * POINTER_LERP;
-
-      starRefs.current.forEach((element, index) => {
-        if (!element) {
-          return;
-        }
-
-        updateStarOffset(element, STARS[index], index);
-      });
-
-      // Settled: the pointer is gone (offsets were just reset), or the eased position has
-      // caught up with a pointer that stopped moving
-      const caughtUp =
-        Math.abs(pointerTarget.x - pointerCurrent.x) < 0.5 &&
-        Math.abs(pointerTarget.y - pointerCurrent.y) < 0.5;
-      if (!pointerTarget.active || caughtUp) {
-        frameId = 0;
-        return;
-      }
-      frameId = window.requestAnimationFrame(animate);
-    }
-
-    // Leaving the window: `pointerout` with no element to go to (window gets no `pointerleave`)
-    const handlePointerOut = (event: PointerEvent) => {
-      if (!event.relatedTarget) resetPointer();
-    };
-    // A finger lifting off has no hover, so let the stars settle back
-    const handlePointerEnd = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse") resetPointer();
-    };
-
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    window.addEventListener("pointerout", handlePointerOut);
-    window.addEventListener("pointerup", handlePointerEnd);
-    window.addEventListener("pointercancel", resetPointer);
-    window.addEventListener("blur", resetPointer);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerout", handlePointerOut);
-      window.removeEventListener("pointerup", handlePointerEnd);
-      window.removeEventListener("pointercancel", resetPointer);
-      window.removeEventListener("blur", resetPointer);
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [reducedMotion]);
+  usePointerPush({ reducedMotion, containerRef, starRefs, controlledRef, explodedStarsRef });
 
   useImperativeHandle(
     ref,
@@ -460,4 +349,140 @@ export default function StarsBackground({ ref }: { ref?: Ref<StarsHandle> }) {
       })}
     </div>
   );
+}
+
+type PointerPushRefs = {
+  reducedMotion: boolean;
+  /** the wallpaper, whose size places the stars */
+  containerRef: RefObject<HTMLDivElement | null>;
+  starRefs: RefObject<Array<HTMLSpanElement | null>>;
+  /** true while a wallpaper effect owns the stars: no pushing then */
+  controlledRef: RefObject<boolean>;
+  /** exploded stars aren't pushed */
+  explodedStarsRef: RefObject<Set<number>>;
+};
+
+/**
+ * Stars near the pointer drift away from it and settle back when it leaves. Off with reduced
+ * motion (the stars don't float then either).
+ */
+function usePointerPush({
+  reducedMotion,
+  containerRef,
+  starRefs,
+  controlledRef,
+  explodedStarsRef,
+}: PointerPushRefs) {
+  useEffect(() => {
+    if (reducedMotion) {
+      return;
+    }
+
+    const pointerTarget = { x: -9999, y: -9999, active: false };
+    const pointerCurrent = { x: -9999, y: -9999 };
+
+    // The loop only runs while something moves: it starts on pointer activity and stops
+    // once the stars have settled, so an idle page does no per-frame work
+    let frameId = 0;
+    const wake = () => {
+      if (controlledRef.current) return;
+      if (!frameId) frameId = window.requestAnimationFrame(animate);
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      pointerTarget.x = event.clientX;
+      pointerTarget.y = event.clientY;
+      pointerTarget.active = true;
+      wake();
+    };
+
+    const resetPointer = () => {
+      pointerTarget.x = -9999;
+      pointerTarget.y = -9999;
+      pointerTarget.active = false;
+      wake();
+    };
+
+    const updateStarOffset = (element: HTMLSpanElement, star: StarDefinition, index: number) => {
+      if (explodedStarsRef.current.has(index)) {
+        setStarOffset(element, "0px", "0px");
+        return;
+      }
+
+      // Stars are placed within the wallpaper, which can be taller than the window
+      const container = containerRef.current;
+      const baseX = (star.x / 100) * (container?.clientWidth ?? 0);
+      const baseY = (star.y / 100) * (container?.clientHeight ?? 0);
+      const dx = baseX - pointerCurrent.x;
+      const dy = baseY - pointerCurrent.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (!pointerTarget.active || distance >= REPULSION_RADIUS || distance === 0) {
+        setStarOffset(element, "0px", "0px");
+        return;
+      }
+
+      const calm = Math.min(1, distance / REPULSION_CALM_RADIUS);
+      const force = (1 - distance / REPULSION_RADIUS) ** 2 * calm;
+      const layerStrength = star.layer === "near" ? 1 : 0.6;
+      const magnitude = force * REPULSION_STRENGTH * layerStrength;
+      const offsetX = (dx / distance) * magnitude;
+      const offsetY = (dy / distance) * magnitude;
+
+      setStarOffset(element, `${offsetX.toFixed(2)}px`, `${offsetY.toFixed(2)}px`);
+    };
+
+    function animate() {
+      // An effect took over the stars (takeControl reset their offsets): stop here
+      if (controlledRef.current) {
+        frameId = 0;
+        return;
+      }
+      pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * POINTER_LERP;
+      pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * POINTER_LERP;
+
+      starRefs.current.forEach((element, index) => {
+        if (!element) {
+          return;
+        }
+
+        updateStarOffset(element, STARS[index], index);
+      });
+
+      // Settled: the pointer is gone (offsets were just reset), or the eased position has
+      // caught up with a pointer that stopped moving
+      const caughtUp =
+        Math.abs(pointerTarget.x - pointerCurrent.x) < 0.5 &&
+        Math.abs(pointerTarget.y - pointerCurrent.y) < 0.5;
+      if (!pointerTarget.active || caughtUp) {
+        frameId = 0;
+        return;
+      }
+      frameId = window.requestAnimationFrame(animate);
+    }
+
+    // Leaving the window: `pointerout` with no element to go to (window gets no `pointerleave`)
+    const handlePointerOut = (event: PointerEvent) => {
+      if (!event.relatedTarget) resetPointer();
+    };
+    // A finger lifting off has no hover, so let the stars settle back
+    const handlePointerEnd = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") resetPointer();
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerout", handlePointerOut);
+    window.addEventListener("pointerup", handlePointerEnd);
+    window.addEventListener("pointercancel", resetPointer);
+    window.addEventListener("blur", resetPointer);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerout", handlePointerOut);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", resetPointer);
+      window.removeEventListener("blur", resetPointer);
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [reducedMotion, containerRef, starRefs, controlledRef, explodedStarsRef]);
 }
