@@ -27,6 +27,8 @@ export type BlackHole = {
 
 type Mode = "infall" | "absorbed" | "burst" | "home";
 
+type PathStart = { from?: Polar; delay: number; duration: number; fadeIn?: boolean };
+
 type Body = {
   star: ControlledStar;
   random: () => number;
@@ -55,7 +57,7 @@ export function createBlackHole({
   layer: HTMLElement;
   stars: ControlledStar[];
 }): BlackHole {
-  const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const hole = document.createElement("div");
   hole.className = "bh";
@@ -118,6 +120,27 @@ export function createBlackHole({
     };
   });
 
+  /** Gone into the hole: hidden until it falls in again. */
+  const swallow = (body: Body) => {
+    body.mode = "absorbed";
+    body.star.el.style.opacity = "0";
+  };
+
+  /** Starts a body on a new path, from `from` (by default where its last path started). */
+  const startPath = (
+    body: Body,
+    mode: "infall" | "burst",
+    { from = body.from, delay, duration, fadeIn = false }: PathStart,
+  ) => {
+    body.mode = mode;
+    body.from = from;
+    body.pos = from;
+    body.t = 0;
+    body.delay = delay;
+    body.duration = duration;
+    body.fadeIn = fadeIn;
+  };
+
   let frameId = 0;
   let lastTime = 0;
   let respawnTimer = 0;
@@ -158,8 +181,7 @@ export function createBlackHole({
       const fade = body.fadeIn ? Math.min(1, u / 0.15) : 1;
       render(body, index, closeness ** 2, body.star.opacity * visible * fade);
       if (u >= 1 || body.pos.r <= horizonR) {
-        body.mode = "absorbed";
-        body.star.el.style.opacity = "0";
+        swallow(body);
         return false;
       }
       return true;
@@ -209,20 +231,19 @@ export function createBlackHole({
 
   const scheduleRespawn = () => {
     window.clearTimeout(respawnTimer);
-    if (releasing || reducedMotion() || document.hidden) return;
+    if (releasing || motionQuery.matches || document.hidden) return;
     respawnTimer = window.setTimeout(
       () => {
         const absorbed = bodies.filter((b) => b.mode === "absorbed");
         if (absorbed.length) {
           const body = absorbed[Math.floor(Math.random() * absorbed.length)];
           const theta = Math.random() * 2 * Math.PI;
-          body.from = { r: maxR * (0.8 + 0.25 * Math.random()), theta };
-          body.pos = body.from;
-          body.mode = "infall";
-          body.fadeIn = true;
-          body.t = 0;
-          body.delay = 0;
-          body.duration = 5 + 2 * Math.random();
+          startPath(body, "infall", {
+            from: { r: maxR * (0.8 + 0.25 * Math.random()), theta },
+            delay: 0,
+            duration: 5 + 2 * Math.random(),
+            fadeIn: true,
+          });
           wake();
         }
         scheduleRespawn();
@@ -243,7 +264,6 @@ export function createBlackHole({
   };
   const resizeObserver = new ResizeObserver(onResize);
   // Reduced motion switched on mid-effect: finish instantly instead of animating
-  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const onMotionChange = () => {
     if (!motionQuery.matches) {
       scheduleRespawn();
@@ -257,10 +277,7 @@ export function createBlackHole({
       finishRelease();
       return;
     }
-    bodies.forEach((b) => {
-      b.mode = "absorbed";
-      b.star.el.style.opacity = "0";
-    });
+    bodies.forEach(swallow);
   };
   document.addEventListener("visibilitychange", onVisibility);
   resizeObserver.observe(layer);
@@ -340,27 +357,22 @@ export function createBlackHole({
 
   return {
     consume() {
-      if (reducedMotion()) {
+      if (motionQuery.matches) {
         // No spiral: the stars are simply gone and the hole sits still
-        bodies.forEach((b) => {
-          b.mode = "absorbed";
-          b.star.el.style.opacity = "0";
-        });
+        bodies.forEach(swallow);
         return;
       }
       bodies.forEach((body) => {
         if (body.star.hidden) {
-          body.mode = "absorbed";
-          body.star.el.style.opacity = "0";
+          swallow(body);
           return;
         }
         const reach = body.from.r / maxR;
-        body.mode = "infall";
-        body.fadeIn = false;
-        body.t = 0;
         // Nearer stars go first; the whole show takes about three seconds
-        body.delay = 0.2 + reach * 0.9 + body.random() * 0.3;
-        body.duration = 1.3 + reach * 1.3 + body.random() * 0.3;
+        startPath(body, "infall", {
+          delay: 0.2 + reach * 0.9 + body.random() * 0.3,
+          duration: 1.3 + reach * 1.3 + body.random() * 0.3,
+        });
       });
       wake();
       scheduleRespawn();
@@ -370,7 +382,7 @@ export function createBlackHole({
       releasing = true;
       onReleased = onDone;
       window.clearTimeout(respawnTimer);
-      if (reducedMotion()) {
+      if (motionQuery.matches) {
         finishRelease();
         return;
       }
@@ -385,13 +397,12 @@ export function createBlackHole({
       );
       bodies.forEach((body) => {
         if (body.mode === "absorbed") return;
-        body.mode = "absorbed";
         const el = body.star.el;
         el.animate([{ opacity: el.style.opacity || 1 }, { opacity: 0 }], {
           duration: IMPLODE_MS * 0.8,
           easing: "ease-in",
         });
-        el.style.opacity = "0";
+        swallow(body);
       });
 
       // 2. Explosion: flash, shockwaves, and every star blasted back out to its place
@@ -407,13 +418,13 @@ export function createBlackHole({
           },
         );
         explosionEffects();
-        bodies.forEach((body) => {
-          body.mode = "burst";
-          body.from = { r: horizonR * 0.15, theta: 0 };
-          body.t = 0;
-          body.delay = body.random() * 0.08;
-          body.duration = 0.9 + body.random() * 0.6;
-        });
+        bodies.forEach((body) =>
+          startPath(body, "burst", {
+            from: { r: horizonR * 0.15, theta: 0 },
+            delay: body.random() * 0.08,
+            duration: 0.9 + body.random() * 0.6,
+          }),
+        );
         wake();
       }, IMPLODE_MS);
     },
