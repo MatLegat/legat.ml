@@ -9,6 +9,7 @@ import { Dock, TrafficLights } from "@/components/WindowControls";
 import { useFitVisibleViewport } from "@/hooks/use-fit-visible-viewport";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useWallpaper } from "@/hooks/use-wallpaper";
+import { consumeSkipKey } from "@/lib/skip-key";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
 import type { WindowState } from "@/lib/window-state";
@@ -144,17 +145,7 @@ function Index() {
   // skip intro on key
   useEffect(() => {
     const skip = (e: KeyboardEvent) => {
-      if (allDoneRef.current || e.defaultPrevented) return;
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      // Enter/Space on a link or button should activate it, not skip
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("a, button, input, textarea, select, [contenteditable]")) return;
-      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
-        // The prompt takes focus right away, so without this the same Enter submits an empty
-        // line and the same Space types into it
-        e.preventDefault();
-        setSkipped(true);
-      }
+      if (!allDoneRef.current && consumeSkipKey(e)) setSkipped(true);
     };
     window.addEventListener("keydown", skip);
     return () => window.removeEventListener("keydown", skip);

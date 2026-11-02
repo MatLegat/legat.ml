@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Prompt } from "@/components/Prompt";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { consumeSkipKey } from "@/lib/skip-key";
 import { blocks as introBlocks, COMMAND_SPEED, FAST, type Block } from "@/lib/terminal/content";
 
 export function StaticBlock({ block }: { block: Block }) {
@@ -112,14 +113,7 @@ export function Replay({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     if (finished) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("a, button, input, textarea, select, [contenteditable]")) return;
-      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
-        // Keeps the key from reaching the prompt once it's back (see the intro's skip)
-        e.preventDefault();
-        setSkipped(true);
-      }
+      if (consumeSkipKey(e)) setSkipped(true);
     };
     // Clicks in the terminal skip it; clicks elsewhere (dock, browser) don't
     const onClick = (e: MouseEvent) => {
