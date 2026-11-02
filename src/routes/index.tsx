@@ -84,9 +84,8 @@ function Index() {
   const blackHoleRef = useRef<BlackHole | null>(null);
   const [toast, setToast] = useState({ text: "", visible: false });
   const toastTimer = useRef(0);
-  const [showBanner, setShowBanner] = useState(true);
-  const [showIntro, setShowIntro] = useState(true);
-  const [showCv, setShowCv] = useState(true);
+  // The name banner, the hint line and the intro, until the screen is cleared
+  const [showInitialContent, setShowInitialContent] = useState(true);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Dragging the terminal by its title bar (desktop only)
@@ -198,9 +197,7 @@ function Index() {
 
   function clearScreen() {
     setHistory([]);
-    setShowBanner(false);
-    setShowIntro(false);
-    setShowCv(false);
+    setShowInitialContent(false);
     setLoginLine(null);
   }
 
@@ -494,7 +491,7 @@ function Index() {
                 }}
                 className="terminal-window-content relative z-0 min-h-0 flex-1 overflow-y-auto p-4 text-sm leading-relaxed crt-glow sm:p-6 sm:text-[15px] md:p-8"
               >
-                {showBanner && (
+                {showInitialContent && (
                   <div
                     className="flex items-start flex-col mb-4 sm:gap-2 sm:flex-row"
                     aria-hidden="true"
@@ -513,7 +510,7 @@ function Index() {
                     </pre>
                   </div>
                 )}
-                {showIntro && (
+                {showInitialContent && (
                   <div className="intro-hint text-term-dim mb-6 text-xs">
                     // press enter/space to skip · type{" "}
                     <span className="text-term-yellow">help</span> when prompt appears
@@ -522,7 +519,7 @@ function Index() {
 
                 {/* The intro, typed out. Its plain copy is in the server HTML for crawlers and
                     read by screen readers, then shown in place once typing is done or skipped. */}
-                {showCv && (
+                {showInitialContent && (
                   <Transcript
                     blocks={blocks}
                     skipped={skipped || reducedMotion}
