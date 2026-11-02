@@ -1,23 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrowserWindow, type BrowserHandle } from "@/components/BrowserWindow";
 import { CommandLine, type CommandLineHandle } from "@/components/CommandLine";
 import { Prompt } from "@/components/Prompt";
-import { Replay, Transcript } from "@/components/Transcript";
+import { Transcript } from "@/components/Transcript";
 import StarsBackground from "@/components/StarsBackground";
 import { Dock, TrafficLights } from "@/components/WindowControls";
 import { useFitVisibleViewport } from "@/hooks/use-fit-visible-viewport";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useTerminalSession } from "@/hooks/use-terminal-session";
 import { useWallpaper } from "@/hooks/use-wallpaper";
 import { consumeSkipKey } from "@/lib/skip-key";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
 import type { WindowState } from "@/lib/window-state";
-import { complete } from "@/lib/terminal/completion";
-import { blocks, commandText } from "@/lib/terminal/content";
-import { displayPath, HOME } from "@/lib/terminal/filesystem";
-import { addToHistory, navigateHistory, type HistoryNav } from "@/lib/terminal/history";
-import { runCommand, THEMES, type ThemeName } from "@/lib/terminal/shell";
+import { blocks } from "@/lib/terminal/content";
+import { displayPath } from "@/lib/terminal/filesystem";
+import type { ThemeName } from "@/lib/terminal/shell";
 
 const THEME_CLASS: Record<ThemeName, string> = {
   green: "",
@@ -61,21 +60,14 @@ const SURNAME_BANNER = ` _                   _
 |_____\\___|\\__,_|\\__,_\\_|
            |___/        `;
 
-type ScreenEntry = { id: number; cmd: string; output: ReactNode; path: string };
-
 function Index() {
   // The intro has typed everything out on its own
   const [introTyped, setIntroTyped] = useState(false);
-  // The `replay` command is typing: the prompt waits, like while a script runs
-  const [replaying, setReplaying] = useState(false);
   const [skipped, setSkipped] = useState(false);
-  const [theme, setTheme] = useState<ThemeName>("green");
-  const [cwd, setCwd] = useState(HOME);
   const reducedMotion = useReducedMotion();
   useFitVisibleViewport();
   const [windowState, setWindowState] = useState<WindowState>("open");
   const [zoomed, setZoomed] = useState(false);
-  const [loginLine, setLoginLine] = useState<string | null>(null);
   const dockButtonRef = useRef<HTMLButtonElement>(null);
   // The browser window from the dock, and which window is on top
   const [browserState, setBrowserState] = useState<WindowState>("closed");
@@ -83,7 +75,6 @@ function Index() {
   const [front, setFront] = useState<"terminal" | "browser">("terminal");
   const browserButtonRef = useRef<HTMLButtonElement>(null);
   const browserRef = useRef<BrowserHandle>(null);
-  const sessionStart = useRef<Date | null>(null);
   const {
     starsRef,
     wallpaper,
@@ -92,10 +83,21 @@ function Index() {
     toast,
     toggle: toggleWallpaper,
   } = useWallpaper();
-  // The name banner, the hint line and the intro, until the screen is cleared
-  const [showInitialContent, setShowInitialContent] = useState(true);
-  // What has been run since the screen was last cleared, with its output
-  const [entries, setEntries] = useState<ScreenEntry[]>([]);
+  const {
+    theme,
+    cycleTheme,
+    cwd,
+    entries,
+    showInitialContent,
+    loginLine,
+    replaying,
+    clearScreen,
+    startNewSession: startNewShellSession,
+    submitLine,
+    cancelLine,
+    completeLine,
+    moveInHistory,
+  } = useTerminalSession();
   const scrollRef = useRef<HTMLDivElement>(null);
   // Dragging the terminal by its title bar (desktop only)
   const terminalShellRef = useRef<HTMLDivElement>(null);
@@ -103,10 +105,6 @@ function Index() {
   const terminalBarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const commandLineRef = useRef<CommandLineHandle>(null);
-  const entryId = useRef(0);
-  // Submitted commands for ↑/↓ recall, seeded with the intro's commands. Kept across `clear`, like a shell.
-  const commandHistory = useRef<string[]>(blocks.map(commandText));
-  const historyNav = useRef<HistoryNav>({ index: null, draft: "" });
   const allDoneRef = useRef(false);
 
   function scrollToBottom(behavior: ScrollBehavior = "auto") {
@@ -184,38 +182,14 @@ function Index() {
     }
   }, [allDone, skipped]);
 
-  function cycleTheme() {
-    setTheme((current) => THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
-  }
-
-  function addEntry(cmd: string, output: ReactNode, path = displayPath(cwd)) {
-    // Taken now: the update below runs later, after any other entries pushed in the same go
-    const id = ++entryId.current;
-    setEntries((list) => [...list, { id, cmd, output, path }]);
-  }
-
-  function clearScreen() {
-    setEntries([]);
-    setShowInitialContent(false);
-    setLoginLine(null);
-  }
-
   // --- Window buttons -------------------------------------------------------
-
-  useEffect(() => {
-    sessionStart.current = new Date();
-  }, []);
 
   /** Reopening after close starts over, like a new Terminal window. */
   function startNewSession() {
-    clearScreen();
+    startNewShellSession();
     setSkipped(true);
-    setCwd(HOME);
     commandLineRef.current?.setValue("");
-    historyNav.current = { index: null, draft: "" };
     setZoomed(false);
-    setLoginLine(`Last login: ${formatLoginDate(sessionStart.current ?? new Date())} on ttys000`);
-    sessionStart.current = new Date();
   }
 
   // Becomes true once the minimize/close animation has finished
@@ -294,52 +268,6 @@ function Index() {
     if (windowState === "open") autoFocusPrompt(inputRef.current);
     else dockButtonRef.current?.focus();
   }, [windowState]);
-
-  function submitCommand(raw: string) {
-    const result = runCommand(raw, { theme, cwd, history: commandHistory.current });
-    if (result.clear) {
-      clearScreen();
-      return;
-    }
-    if (result.theme) setTheme(result.theme);
-    if (result.replay) {
-      setReplaying(true);
-      addEntry(raw.trim(), <Replay onDone={() => setReplaying(false)} />);
-    } else {
-      addEntry(raw.trim(), result.output);
-    }
-    if (result.cwd) setCwd(result.cwd);
-  }
-
-  // --- Prompt: the line itself lives in CommandLine, so typing doesn't re-render the page --
-
-  function onSubmitLine(line: string) {
-    commandHistory.current = addToHistory(commandHistory.current, line);
-    historyNav.current = { index: null, draft: "" };
-    submitCommand(line);
-  }
-
-  function onCancelLine(line: string) {
-    addEntry(`${line}^C`, null);
-    historyNav.current = { index: null, draft: "" };
-  }
-
-  function onCompleteLine(line: string, caretAt: number) {
-    const { value, caret, options } = complete(line, cwd, caretAt);
-    if (value !== line) return { value, caret };
-    if (options.length > 1) {
-      addEntry(line, <div style={{ whiteSpace: "pre-wrap" }}>{options.join("  ")}</div>);
-    }
-    return null;
-  }
-
-  function onHistoryKey(direction: "up" | "down", line: string) {
-    const moved = navigateHistory(commandHistory.current, historyNav.current, line, direction);
-    if (!moved) return null;
-    const { value, ...nav } = moved;
-    historyNav.current = nav;
-    return value;
-  }
 
   return (
     <>
@@ -489,11 +417,11 @@ function Index() {
                     inputRef={inputRef}
                     path={displayPath(cwd)}
                     hidden={replaying}
-                    onSubmit={onSubmitLine}
-                    onCancel={onCancelLine}
+                    onSubmit={submitLine}
+                    onCancel={cancelLine}
                     onClearScreen={clearScreen}
-                    onComplete={onCompleteLine}
-                    onHistory={onHistoryKey}
+                    onComplete={completeLine}
+                    onHistory={moveInHistory}
                   />
                 )}
               </div>
@@ -542,15 +470,4 @@ let hardwareKeyboard = false;
 function autoFocusPrompt(input: HTMLInputElement | null) {
   if (!hardwareKeyboard && window.matchMedia("(pointer: coarse)").matches) return;
   input?.focus({ preventScroll: true });
-}
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** `Sat Oct 31 21:05:16`, as in macOS Terminal's "Last login" line. */
-function formatLoginDate(d: Date) {
-  const time = [d.getHours(), d.getMinutes(), d.getSeconds()]
-    .map((n) => String(n).padStart(2, "0"))
-    .join(":");
-  return `${DAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()} ${time}`;
 }
