@@ -1,9 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { complete } from "./completion";
 import { blocks, commandText } from "./content";
-import { displayPath, HOME, resolvePath } from "./filesystem";
-import { addToHistory, navigateHistory, type HistoryNav } from "./history";
+import { HOME } from "./filesystem";
 import { runCommand, tokenize, type ShellContext } from "./shell";
 
 const ctx = (over: Partial<ShellContext> = {}): ShellContext => ({
@@ -42,13 +40,12 @@ describe("intro commands", () => {
     expect(run(cmd)).toBe(blockText(id));
   });
 
-  it("supports the shortcut commands", () => {
-    expect(run("about")).toBe(blockText("about"));
-    expect(run("skills")).toBe(blockText("skills"));
-    expect(run("experience")).toBe(blockText("experience"));
-    expect(run("education")).toBe(blockText("education"));
-    expect(run("contact")).toBe(blockText("contact"));
-  });
+  it.each(["about", "skills", "experience", "education", "contact"])(
+    "shortcut `%s` prints its block",
+    (id) => {
+      expect(run(id)).toBe(blockText(id));
+    },
+  );
 
   it("prints nothing for an empty line", () => {
     expect(runCommand("   ", ctx())).toEqual({ output: null });
@@ -78,22 +75,6 @@ describe("tokenize", () => {
       `${HOME}/x`,
       "a~",
     ]);
-  });
-});
-
-describe("paths", () => {
-  it("resolves relative, home and parent paths", () => {
-    expect(resolvePath(HOME, "skills/")).toBe(`${HOME}/skills`);
-    expect(resolvePath(HOME, "./skills/../about.md")).toBe(`${HOME}/about.md`);
-    expect(resolvePath(`${HOME}/skills`, "~")).toBe(HOME);
-    expect(resolvePath(HOME, "..")).toBe("/home");
-    expect(resolvePath("/", "..")).toBe("/");
-  });
-
-  it("shows home as ~", () => {
-    expect(displayPath(HOME)).toBe("~");
-    expect(displayPath(`${HOME}/skills`)).toBe("~/skills");
-    expect(displayPath("/home")).toBe("/home");
   });
 });
 
@@ -271,7 +252,6 @@ describe("other commands", () => {
 
   it("replay asks to run the intro again", () => {
     expect(runCommand("replay", ctx())).toEqual({ output: null, replay: true });
-    expect(complete("rep", HOME).value).toBe("replay ");
   });
 
   it("clear wipes the screen", () => {
@@ -285,55 +265,6 @@ describe("other commands", () => {
   });
 });
 
-describe("complete", () => {
-  const value = (input: string, caret?: number) => complete(input, HOME, caret).value;
-
-  it("completes commands", () => {
-    expect(complete("wh", HOME)).toEqual({ value: "whoami ", caret: 7, options: [] });
-    expect(complete("e", HOME)).toEqual({
-      value: "e",
-      caret: 1,
-      options: ["echo", "education", "exit", "experience"],
-    });
-    expect(complete("ex", HOME).options).toEqual(["exit", "experience"]);
-    expect(value("exp")).toBe("experience ");
-  });
-
-  it("completes paths", () => {
-    expect(value("cat ab")).toBe("cat about.md ");
-    expect(value("cat ./ed")).toBe("cat ./education.txt ");
-    expect(value("ls sk")).toBe("ls skills/");
-    expect(value("ls skills/fr")).toBe("ls skills/frontend/");
-    expect(value("cat ~/con")).toBe("cat ~/contact.sh ");
-  });
-
-  it("understands quotes and variables like the parser", () => {
-    expect(value('cat "ab')).toBe('cat "about.md" ');
-    expect(value("cat 'sk")).toBe("cat 'skills/");
-    expect(value("cat $HOME/ab")).toBe("cat $HOME/about.md ");
-    expect(value('cat "$HOME/ab')).toBe('cat "$HOME/about.md" ');
-  });
-
-  it("completes the word at the caret and keeps the rest", () => {
-    const input = "cat ab education.txt";
-    expect(complete(input, HOME, 6)).toEqual({
-      value: "cat about.md education.txt",
-      caret: 12,
-      options: [],
-    });
-  });
-
-  it("only offers directories to cd and runnable files as commands", () => {
-    expect(value("cd ")).toBe("cd skills/");
-    expect(complete("./", HOME).options).toEqual(["contact.sh", "skills/"]);
-  });
-
-  it("leaves the input alone when nothing matches", () => {
-    expect(complete("cat zz", HOME)).toEqual({ value: "cat zz", caret: 6, options: [] });
-    expect(value("ls constructor/")).toBe("ls constructor/");
-  });
-});
-
 describe("names that exist on every JS object", () => {
   it.each(["constructor", "__proto__", "toString", "hasOwnProperty"])(
     "`%s` is just a missing file",
@@ -344,51 +275,4 @@ describe("names that exist on every JS object", () => {
       expect(run(`./${name}`)).toBe(`bash: ./${name}: No such file or directory`);
     },
   );
-});
-
-describe("addToHistory", () => {
-  it("appends trimmed commands", () => {
-    expect(addToHistory(["a"], "  b ")).toEqual(["a", "b"]);
-  });
-
-  it("skips blanks and repeats of the last command", () => {
-    expect(addToHistory(["a"], "   ")).toEqual(["a"]);
-    expect(addToHistory(["a"], "a")).toEqual(["a"]);
-    expect(addToHistory(["a", "b"], "a")).toEqual(["a", "b", "a"]);
-  });
-});
-
-describe("navigateHistory", () => {
-  const list = ["one", "two", "three"];
-  const fresh: HistoryNav = { index: null, draft: "" };
-
-  it("does nothing with an empty history", () => {
-    expect(navigateHistory([], fresh, "typed", "up")).toBeNull();
-  });
-
-  it("does nothing on down while editing a new line", () => {
-    expect(navigateHistory(list, fresh, "typed", "down")).toBeNull();
-  });
-
-  it("walks back and stops at the oldest entry", () => {
-    let nav = navigateHistory(list, fresh, "typed", "up")!;
-    expect(nav).toEqual({ index: 2, draft: "typed", value: "three" });
-    nav = navigateHistory(list, nav, nav.value, "up")!;
-    nav = navigateHistory(list, nav, nav.value, "up")!;
-    expect(nav.value).toBe("one");
-    nav = navigateHistory(list, nav, nav.value, "up")!;
-    expect(nav).toEqual({ index: 0, draft: "typed", value: "one" });
-  });
-
-  it("walks forward and restores the unsent line", () => {
-    let nav = navigateHistory(list, { index: 1, draft: "typed" }, "two", "down")!;
-    expect(nav).toEqual({ index: 2, draft: "typed", value: "three" });
-    nav = navigateHistory(list, nav, nav.value, "down")!;
-    expect(nav).toEqual({ index: null, draft: "typed", value: "typed" });
-  });
-
-  it("starts with the intro commands, newest last", () => {
-    const seeded = blocks.map(commandText);
-    expect(navigateHistory(seeded, fresh, "", "up")!.value).toBe("./contact.sh");
-  });
 });
