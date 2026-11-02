@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { blocks as introBlocks, COMMAND_SPEED, FAST, type Block } from "@/lib/terminal";
+import { blocks as introBlocks, COMMAND_SPEED, FAST, type Block } from "@/lib/terminal/content";
 
 // Hidden from screen readers: repeating "matteus@legat:~$" before every line is noise
 export function Prompt({ path = "~" }: { path?: string }) {

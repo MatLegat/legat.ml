@@ -1,19 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import {
-  addToHistory,
-  blocks,
-  commandText,
-  complete,
-  displayPath,
-  HOME,
-  navigateHistory,
-  resolvePath,
-  runCommand,
-  tokenize,
-  type HistoryNav,
-  type ShellContext,
-} from "./terminal";
+import { complete } from "./completion";
+import { blocks, commandText } from "./content";
+import { displayPath, HOME, resolvePath } from "./filesystem";
+import { addToHistory, navigateHistory, type HistoryNav } from "./history";
+import { runCommand, tokenize, type ShellContext } from "./shell";
 
 const ctx = (over: Partial<ShellContext> = {}): ShellContext => ({
   theme: "green",

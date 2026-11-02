@@ -11,19 +11,11 @@ import { useWallpaper } from "@/hooks/use-wallpaper";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
 import type { WindowState } from "@/lib/window-state";
-import {
-  addToHistory,
-  blocks,
-  commandText,
-  complete,
-  displayPath,
-  HOME,
-  navigateHistory,
-  runCommand,
-  THEMES,
-  type HistoryNav,
-  type ThemeName,
-} from "@/lib/terminal";
+import { complete } from "@/lib/terminal/completion";
+import { blocks, commandText } from "@/lib/terminal/content";
+import { displayPath, HOME } from "@/lib/terminal/filesystem";
+import { addToHistory, navigateHistory, type HistoryNav } from "@/lib/terminal/history";
+import { runCommand, THEMES, type ThemeName } from "@/lib/terminal/shell";
 
 const THEME_CLASS: Record<ThemeName, string> = {
   green: "",
