@@ -13,11 +13,14 @@ import type { ControlledStar } from "@/lib/wallpaper/black-hole";
 
 /** Lets a wallpaper effect take over the stars and give them back. */
 export type StarsHandle = {
-  /** Freezes every star where it is on screen and hands it over; stops hover and clicks. */
+  /**
+   * Hands every star over to the effect, which moves and fades the slots they sit in (the
+   * stars keep floating inside them). Stops hover, clicks and the pointer push meanwhile.
+   */
   takeControl(): ControlledStar[];
   /** Clears the effect's styles and resumes the normal floating stars. */
   releaseControl(): void;
-  /** An empty layer behind the stars for the effect's own elements. */
+  /** An empty layer above the stars for the effect's own elements (e.g. the black hole). */
   layer: HTMLDivElement | null;
 };
 

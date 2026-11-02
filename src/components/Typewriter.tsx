@@ -37,7 +37,7 @@ type Props = {
   segments: Segment[];
   /** default chars per second */
   speed?: number;
-  /** show blinking cursor at the end while/after typing */
+  /** show a blinking cursor at the end while typing */
   cursor?: boolean;
   /** called when fully done */
   onDone?: () => void;
