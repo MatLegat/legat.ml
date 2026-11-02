@@ -98,7 +98,7 @@ function wallpaperLabel(wallpaper: Wallpaper) {
 
 /** A tiny black hole: dark core with a tilted glowing ring. */
 function BlackHoleGlyph({ className }: { className?: string }) {
-  // Unique per copy: the dock and the title bar can both be on the page
+  // A unique gradient id, so it can't clash with any other id on the page
   const ring = `bh-glyph-ring-${useId().replace(/[^\w-]/g, "")}`;
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">

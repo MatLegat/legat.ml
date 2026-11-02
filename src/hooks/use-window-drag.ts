@@ -36,8 +36,6 @@ export function useWindowDrag({ shell, frame, handle, state, zoomed, onStart }: 
     onStartRef.current = onStart;
   });
 
-  // Every helper below reads the refs when called, so they're defined inside each effect
-
   // Reopened after a close, or dragging no longer possible (small screen, touch): center
   const previousState = useRef(state);
   useEffect(() => {

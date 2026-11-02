@@ -424,7 +424,7 @@ function Index() {
       </div>
       <div
         className={`terminal-page box-border h-[var(--app-height)] overflow-hidden p-3 pb-0! text-foreground sm:p-6 md:p-10 ${THEME_CLASS[theme]}`}
-        // Full-screen layout while the window shows and while it animates away; then the footer is back
+        // Full-screen layout while the window shows and while it animates away; then the normal layout is back
         data-zoomed={(zoomed && (windowState === "open" || !hideAnimationDone)) || undefined}
       >
         <div

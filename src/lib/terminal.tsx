@@ -311,11 +311,12 @@ export function displayPath(abs: string) {
 // Parsing
 // ---------------------------------------------------------------------------
 
-/** Splits a command line into words, handling quotes, backslashes, `~` and `$VARS`. */
+/** The variables `$NAME` expands to. */
 function shellEnv(cwd: string): Record<string, string> {
   return { USER, LOGNAME: USER, HOME, PWD: cwd, SHELL: "/bin/bash" };
 }
 
+/** Splits a command line into words, handling quotes, backslashes, `~` and `$VARS`. */
 export function tokenize(line: string, env: Record<string, string>): string[] {
   const tokens: string[] = [];
   let cur = "";
