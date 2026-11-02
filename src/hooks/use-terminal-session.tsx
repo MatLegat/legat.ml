@@ -8,6 +8,8 @@ import { runCommand, THEMES, type ThemeName } from "@/lib/terminal/shell";
 
 export type ScreenEntry = { id: number; cmd: string; output: ReactNode; path: string };
 
+export type TerminalSession = ReturnType<typeof useTerminalSession>;
+
 /**
  * What the shell remembers: the screen (entries, the intro, the login line), the current
  * folder, the theme and the ↑/↓ history. The handlers are what the prompt calls.

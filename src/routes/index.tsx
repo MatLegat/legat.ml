@@ -1,21 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { BrowserWindow, type BrowserHandle } from "@/components/BrowserWindow";
-import { CommandLine, type CommandLineHandle } from "@/components/CommandLine";
-import { Prompt } from "@/components/Prompt";
-import { Transcript } from "@/components/Transcript";
+import type { CommandLineHandle } from "@/components/CommandLine";
 import StarsBackground from "@/components/StarsBackground";
-import { Dock, TrafficLights } from "@/components/WindowControls";
+import { TerminalWindow } from "@/components/TerminalWindow";
+import { Dock } from "@/components/WindowControls";
 import { useFitVisibleViewport } from "@/hooks/use-fit-visible-viewport";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useTerminalSession } from "@/hooks/use-terminal-session";
 import { useWallpaper } from "@/hooks/use-wallpaper";
 import { consumeSkipKey } from "@/lib/skip-key";
-import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
 import type { WindowState } from "@/lib/window-state";
-import { blocks } from "@/lib/terminal/content";
-import { displayPath } from "@/lib/terminal/filesystem";
 import type { ThemeName } from "@/lib/terminal/shell";
 
 const THEME_CLASS: Record<ThemeName, string> = {
@@ -46,20 +42,6 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-// The name in big letters at the top of the terminal
-const FIRST_NAME_BANNER = ` __  __       _   _                  
-|  \\/  | __ _| |_| |_ ___ _   _ ___   
-| |\\/| |/ _\` | __| __/ _ \\ | | / __|  
-| |  | | (_| | |_| ||  __/ |_| \\__ \\  
-|_|  |_|\\__,_|\\__|\\__\\___|\\__,_|___/  `;
-
-const SURNAME_BANNER = ` _                   _   
-| |    ___  __ _  __| |_ 
-| |   / _ \\/ _\` |/ _\` __|
-| |__|  __/ (_| | (_| |_ 
-|_____\\___|\\__,_|\\__,_\\_|
-           |___/        `;
-
 function Index() {
   // The intro has typed everything out on its own
   const [introTyped, setIntroTyped] = useState(false);
@@ -83,26 +65,9 @@ function Index() {
     toast,
     toggle: toggleWallpaper,
   } = useWallpaper();
-  const {
-    theme,
-    cycleTheme,
-    cwd,
-    entries,
-    showInitialContent,
-    loginLine,
-    replaying,
-    clearScreen,
-    startNewSession: startNewShellSession,
-    submitLine,
-    cancelLine,
-    completeLine,
-    moveInHistory,
-  } = useTerminalSession();
+  const session = useTerminalSession();
+  const { theme, entries, replaying } = session;
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Dragging the terminal by its title bar (desktop only)
-  const terminalShellRef = useRef<HTMLDivElement>(null);
-  const terminalFrameRef = useRef<HTMLDivElement>(null);
-  const terminalBarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const commandLineRef = useRef<CommandLineHandle>(null);
   const allDoneRef = useRef(false);
@@ -186,7 +151,7 @@ function Index() {
 
   /** Reopening after close starts over, like a new Terminal window. */
   function startNewSession() {
-    startNewShellSession();
+    session.startNewSession();
     setSkipped(true);
     commandLineRef.current?.setValue("");
     setZoomed(false);
@@ -206,15 +171,6 @@ function Index() {
       reducedMotion ? 0 : 400,
     );
   }
-
-  useWindowDrag({
-    shell: terminalShellRef,
-    frame: terminalFrameRef,
-    handle: terminalBarRef,
-    state: windowState,
-    zoomed,
-    onStart: () => setFront("terminal"),
-  });
 
   // --- Wallpaper -------------------------------------------------------------------
 
@@ -287,147 +243,22 @@ function Index() {
         // Full-screen layout while the window shows and while it animates away; then the normal layout is back
         data-zoomed={(zoomed && (windowState === "open" || !hideAnimationDone)) || undefined}
       >
-        <div
-          ref={terminalShellRef}
-          className="terminal-shell"
-          data-state={windowState}
-          inert={windowState !== "open"}
-          // Clicking or tabbing into a window brings it to the front
-          onPointerDown={() => setFront("terminal")}
+        <TerminalWindow
+          state={windowState}
+          zoomed={zoomed}
           onFocus={() => setFront("terminal")}
-        >
-          <div
-            ref={terminalFrameRef}
-            className="terminal-window-blur mx-auto flex terminal-frame max-w-5xl flex-col overflow-hidden rounded-[12px] backdrop-blur-xs"
-          >
-            <div
-              className="terminal-window mx-auto flex terminal-frame w-full flex-col overflow-hidden rounded-[12px] border border-border shadow-2xl backdrop-blur-md"
-              // See-through background rather than a see-through window, so the text and the
-              // window buttons keep their real colors (as macOS does)
-              style={{
-                backgroundColor: "color-mix(in oklab, var(--terminal-bg) 82.5%, transparent)",
-              }}
-            >
-              <div
-                ref={terminalBarRef}
-                className="terminal-window-bar flex shrink-0 select-none items-center justify-between border-b border-border px-4 py-2"
-                style={{
-                  backgroundColor: "color-mix(in oklab, var(--terminal-header) 82.5%, transparent)",
-                }}
-                // Double-clicking the title bar zooms, as on macOS
-                onDoubleClick={(e) => {
-                  if (!(e.target as HTMLElement).closest("button")) setZoomed((z) => !z);
-                }}
-              >
-                <TrafficLights
-                  zoomed={zoomed}
-                  onClose={() => hideWindow("closed")}
-                  onMinimize={() => hideWindow("minimized")}
-                  onZoom={() => setZoomed((z) => !z)}
-                />
-                <div className="min-w-0 truncate px-2 text-xs text-term-dim">
-                  — matteus@legat: {displayPath(cwd)} —
-                </div>
-                <button
-                  type="button"
-                  onClick={cycleTheme}
-                  className="text-xs text-term-dim cursor-pointer hover:text-foreground transition-colors"
-                  aria-label={`Current theme: ${theme}. Click to switch theme.`}
-                  title="Click to cycle theme"
-                >
-                  {theme}
-                </button>
-              </div>
-
-              <div
-                ref={scrollRef}
-                onClick={(e) => {
-                  if (!allDone) {
-                    setSkipped(true);
-                    return;
-                  }
-                  // Leave focus alone after selecting text or clicking a link/button
-                  if (window.getSelection()?.toString()) return;
-                  if ((e.target as HTMLElement).closest("a, button")) return;
-                  inputRef.current?.focus({ preventScroll: true });
-                }}
-                className="terminal-window-content relative z-0 min-h-0 flex-1 overflow-y-auto p-4 text-sm leading-relaxed crt-glow sm:p-6 sm:text-[15px] md:p-8"
-              >
-                {showInitialContent && (
-                  <div
-                    className="flex items-start flex-col mb-4 sm:gap-2 sm:flex-row"
-                    aria-hidden="true"
-                  >
-                    <pre
-                      className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
-                      style={{ color: "var(--term-prompt)" }}
-                    >
-                      {FIRST_NAME_BANNER}
-                    </pre>
-                    <pre
-                      className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
-                      style={{ color: "var(--term-prompt)" }}
-                    >
-                      {SURNAME_BANNER}
-                    </pre>
-                  </div>
-                )}
-                {showInitialContent && (
-                  <div className="intro-hint text-term-dim mb-6 text-xs">
-                    // press enter/space to skip · type{" "}
-                    <span className="text-term-yellow">help</span> when prompt appears
-                  </div>
-                )}
-
-                {/* The intro, typed out. Its plain copy is in the server HTML for crawlers and
-                    read by screen readers, then shown in place once typing is done or skipped. */}
-                {showInitialContent && (
-                  <Transcript
-                    blocks={blocks}
-                    skipped={skipped || reducedMotion}
-                    onDone={() => setIntroTyped(true)}
-                  />
-                )}
-
-                {loginLine && (
-                  <div className="mb-4">
-                    <div>{loginLine}</div>
-                    <div className="text-xs text-term-dim">
-                      // type <span className="text-term-yellow">help</span> to list commands
-                    </div>
-                  </div>
-                )}
-
-                {/* New results are read out by screen readers without moving focus */}
-                <div role="log" aria-live="polite" aria-label="Command output">
-                  {entries.map((entry) => (
-                    <div key={entry.id} className="mb-4">
-                      <div>
-                        <Prompt path={entry.path} />
-                        <span style={{ whiteSpace: "pre-wrap" }}>{entry.cmd}</span>
-                      </div>
-                      {entry.output && <div className="mt-1">{entry.output}</div>}
-                    </div>
-                  ))}
-                </div>
-
-                {allDone && (
-                  <CommandLine
-                    ref={commandLineRef}
-                    inputRef={inputRef}
-                    path={displayPath(cwd)}
-                    hidden={replaying}
-                    onSubmit={submitLine}
-                    onCancel={cancelLine}
-                    onClearScreen={clearScreen}
-                    onComplete={completeLine}
-                    onHistory={moveInHistory}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+          onClose={() => hideWindow("closed")}
+          onMinimize={() => hideWindow("minimized")}
+          onZoom={() => setZoomed((z) => !z)}
+          session={session}
+          introDone={allDone}
+          introSkipped={skipped || reducedMotion}
+          onSkipIntro={() => setSkipped(true)}
+          onIntroTyped={() => setIntroTyped(true)}
+          scrollRef={scrollRef}
+          inputRef={inputRef}
+          commandLineRef={commandLineRef}
+        />
 
         <BrowserWindow
           state={browserState}
