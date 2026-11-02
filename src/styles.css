@@ -1,8 +1,6 @@
 @import "tailwindcss" source(none);
 @source "../src";
 
-@custom-variant dark (&:is(.dark *));
-
 /*
  * Design system definition.
  *
@@ -48,13 +46,8 @@
 }
 
 @theme inline {
-  --font-display: "Fraunces", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
-  --color-ink: var(--ink);
-  --color-cream: var(--cream);
-  --color-ochre: var(--ochre);
-  --color-rust: var(--rust);
 }
 
 :root {
@@ -162,28 +155,6 @@
   --border: oklch(0.78 0.02 95);
   --input: oklch(0.84 0.015 95);
   --ring: oklch(0.56 0.08 220);
-}
-
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
 }
 
 @layer base {
@@ -494,24 +465,6 @@
     width: 0;
     height: 1em;
     vertical-align: top;
-  }
-
-  .scanlines {
-    position: relative;
-  }
-  .scanlines::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 2px,
-      oklch(1 0 0 / 0.018) 2px,
-      oklch(1 0 0 / 0.018) 3px
-    );
-    z-index: 1;
   }
 
   .crt-glow {
