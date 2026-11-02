@@ -11,10 +11,10 @@ export type Block = {
   command: Segment[];
   /** output rendered after command finishes */
   output: Segment[];
-  /** speed for command typing */
-  cmdSpeed?: number;
 };
 
+// Typing speeds of the intro, in characters per second
+export const COMMAND_SPEED = 20;
 export const FAST = 600;
 const MED = 220;
 
@@ -37,7 +37,6 @@ export const blocks: Block[] = [
   {
     id: "whoami",
     command: [{ text: "whoami" }],
-    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "Matteus Legat", className: "text-term-yellow crt-glow", speed: FAST },
@@ -50,7 +49,6 @@ export const blocks: Block[] = [
   {
     id: "about",
     command: [{ text: "cat about.md" }],
-    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "# About\n", className: "text-term-magenta", speed: FAST },
@@ -68,19 +66,16 @@ export const blocks: Block[] = [
   {
     id: "skills",
     command: [{ text: "ls ./skills" }],
-    cmdSpeed: 20,
     output: skillsOutput(),
   },
   {
     id: "experience",
     command: [{ text: "git log --oneline experience" }],
-    cmdSpeed: 20,
     output: [{ text: "\n" }, ...experienceOutput()],
   },
   {
     id: "education",
     command: [{ text: "cat education.txt" }],
-    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "[2014–2018] ", className: "text-term-yellow", speed: FAST },
@@ -95,7 +90,6 @@ export const blocks: Block[] = [
   {
     id: "contact",
     command: [{ text: "./contact.sh" }],
-    cmdSpeed: 20,
     output: [
       { text: "\n" },
       { text: "> ", className: "text-term-green", speed: MED },

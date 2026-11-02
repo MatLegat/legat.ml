@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { StaticOutput, Typewriter } from "@/components/Typewriter";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { blocks as introBlocks, FAST, type Block } from "@/lib/terminal";
+import { blocks as introBlocks, COMMAND_SPEED, FAST, type Block } from "@/lib/terminal";
 
 // Hidden from screen readers: repeating "matteus@legat:~$" before every line is noise
 export function Prompt({ path = "~" }: { path?: string }) {
@@ -82,7 +82,7 @@ export function Transcript({ blocks, skipped, onDone }: TranscriptProps) {
                   <Prompt />
                   <Typewriter
                     segments={b.command}
-                    speed={b.cmdSpeed ?? 28}
+                    speed={COMMAND_SPEED}
                     cursor={isActive && !cmdDone[i]}
                     start={isActive}
                     onDone={() => markDone(setCmdDone, i)}

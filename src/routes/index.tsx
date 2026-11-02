@@ -53,6 +53,20 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+// The name in big letters at the top of the terminal
+const FIRST_NAME_BANNER = ` __  __       _   _                  
+|  \\/  | __ _| |_| |_ ___ _   _ ___   
+| |\\/| |/ _\` | __| __/ _ \\ | | / __|  
+| |  | | (_| | |_| ||  __/ |_| \\__ \\  
+|_|  |_|\\__,_|\\__|\\__\\___|\\__,_|___/  `;
+
+const SURNAME_BANNER = ` _                   _   
+| |    ___  __ _  __| |_ 
+| |   / _ \\/ _\` |/ _\` __|
+| |__|  __/ (_| | (_| |_ 
+|_____\\___|\\__,_|\\__,_\\_|
+           |___/        `;
+
 type ScreenEntry = { id: number; cmd: string; output: ReactNode; path: string };
 
 function Index() {
@@ -395,19 +409,6 @@ function Index() {
     return value;
   }
 
-  const name = ` __  __       _   _                  
-|  \\/  | __ _| |_| |_ ___ _   _ ___   
-| |\\/| |/ _\` | __| __/ _ \\ | | / __|  
-| |  | | (_| | |_| ||  __/ |_| \\__ \\  
-|_|  |_|\\__,_|\\__|\\__\\___|\\__,_|___/  `;
-
-  const surname = ` _                   _   
-| |    ___  __ _  __| |_ 
-| |   / _ \\/ _\` |/ _\` __|
-| |__|  __/ (_| | (_| |_ 
-|_____\\___|\\__,_|\\__,_\\_|
-           |___/        `;
-
   return (
     <>
       <StarsBackground ref={starsRef} />
@@ -501,13 +502,13 @@ function Index() {
                       className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
                       style={{ color: "var(--term-prompt)" }}
                     >
-                      {name}
+                      {FIRST_NAME_BANNER}
                     </pre>
                     <pre
                       className="whitespace-pre-wrap m-0 mb-0 text-xs sm:text-sm"
                       style={{ color: "var(--term-prompt)" }}
                     >
-                      {surname}
+                      {SURNAME_BANNER}
                     </pre>
                   </div>
                 )}
