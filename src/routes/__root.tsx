@@ -11,8 +11,11 @@ import { Prompt } from "../components/Prompt";
 import StarsBackground from "../components/StarsBackground";
 import faviconSvg from "../assets/favicon.svg?url";
 import portraitJpg from "../assets/matteus-portrait.jpg?url";
+import { reloadOnStaleFiles } from "../lib/reload-on-stale-files";
 import { SITE_URL } from "../lib/site";
 import appCss from "../styles.css?url";
+
+if (typeof window !== "undefined") reloadOnStaleFiles();
 
 /** The missing path, typed at the prompt as if it were a command. */
 function NotFoundComponent() {
