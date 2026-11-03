@@ -1,26 +1,8 @@
 import { createRouter, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-// TEMP DEBUG: the error's details, shown in production too, to find a crash on iOS 26.2
-function debugReport(error: unknown, componentStack?: string) {
-  const err = error instanceof Error ? error : null;
-  return [
-    `${err?.name ?? typeof error}: ${err?.message ?? String(error)}`,
-    "",
-    `url: ${typeof location === "undefined" ? "(server)" : location.href}`,
-    `browser: ${typeof navigator === "undefined" ? "(server)" : navigator.userAgent}`,
-    `time: ${new Date().toISOString()}`,
-    "",
-    "stack:",
-    err?.stack ?? "(none)",
-    ...(componentStack ? ["", "component stack:", componentStack.trim()] : []),
-  ].join("\n");
-}
-
-function DefaultErrorComponent({ error, reset, info }: ErrorComponentProps) {
+function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
-  // TEMP DEBUG
-  const report = debugReport(error, info?.componentStack);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -45,17 +27,11 @@ function DefaultErrorComponent({ error, reset, info }: ErrorComponentProps) {
         <p className="mt-2 text-sm text-muted-foreground">
           An unexpected error occurred. Please try again.
         </p>
-        {/* TEMP DEBUG: always show the details, with a way to copy them off the phone */}
-        <pre className="mt-4 max-h-[45vh] select-text overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
-          {report}
-        </pre>
-        <button
-          type="button"
-          onClick={() => void navigator.clipboard?.writeText(report)}
-          className="mt-2 text-xs text-muted-foreground underline underline-offset-4"
-        >
-          Copy error details
-        </button>
+        {import.meta.env.DEV && error instanceof Error && error.message && (
+          <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
+            {error.message}
+          </pre>
+        )}
         <div className="mt-6 flex items-center justify-center gap-3">
           <button
             onClick={() => {
