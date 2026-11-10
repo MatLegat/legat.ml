@@ -1,6 +1,6 @@
 // The CV itself: what the intro types out, and what the commands and files show.
 
-import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
+import cvPdfUrl from "@/assets/Matteus_Legat_CV.pdf?url";
 import type { Segment } from "@/components/Typewriter";
 
 export type Block = {
@@ -28,7 +28,7 @@ export const CONTACTS = [
   ["email", "matteus@legat.ml", "mailto:matteus@legat.ml"],
   ["github", "github.com/matlegat", "https://github.com/matlegat"],
   ["linkedin", "linkedin.com/in/matlegat", "https://www.linkedin.com/in/matlegat/"],
-  ["cv", "CV_MatteusLegat.pdf", cvPdfUrl],
+  ["cv", "Matteus_Legat_CV.pdf", cvPdfUrl],
 ] as const;
 
 export const blocks: Block[] = [

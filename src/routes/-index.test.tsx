@@ -17,7 +17,7 @@ describe("index page SSR", () => {
       "open to opportunities",
       "github.com/matlegat",
       "linkedin.com/in/matlegat",
-      "CV_MatteusLegat.pdf",
+      "Matteus_Legat_CV.pdf",
     ]) {
       expect(html).toContain(text);
     }

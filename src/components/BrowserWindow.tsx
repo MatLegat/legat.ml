@@ -7,7 +7,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
-import cvPdfUrl from "@/assets/CV_MatteusLegat.pdf?url";
+import cvPdfUrl from "@/assets/Matteus_Legat_CV.pdf?url";
 import { TrafficLights } from "@/components/WindowControls";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
