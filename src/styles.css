@@ -253,6 +253,12 @@
   .terminal-shell {
     position: relative;
     z-index: 10;
+    /* Full width, but the window inside is narrower: clicks beside it reach the stars */
+    pointer-events: none;
+  }
+
+  .terminal-window-blur {
+    pointer-events: auto;
   }
 
   .browser-shell {
