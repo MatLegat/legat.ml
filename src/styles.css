@@ -696,7 +696,6 @@
       border-radius: 9999px;
       background: radial-gradient(
         closest-side,
-        currentColor 12%,
         color-mix(in srgb, currentColor 20%, transparent) 20%,
         color-mix(in srgb, currentColor 5%, transparent) 45%,
         color-mix(in srgb, currentColor 2%, transparent) 70%,
