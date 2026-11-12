@@ -667,9 +667,6 @@
     color: var(--star-color-1, #ffffff);
     background: currentColor;
     border-radius: 9999px;
-    mix-blend-mode: screen;
-    box-shadow: 0 0 10px currentColor;
-    filter: drop-shadow(0 0 14px currentColor);
     cursor: pointer;
     /* The color moves in small steps, a few times a second, not every frame: each change
        repaints the star's glow. Separate layers per color, cross-faded, would avoid the
@@ -688,6 +685,24 @@
       position: absolute;
       inset: -3px;
       border-radius: 9999px;
+    }
+
+    /* The glow, a gradient: blurred shadows (box-shadow, drop-shadow) were redrawn on each
+       color step and held up Chrome's drawing of content scrolled into view */
+    &:not(.exploded)::after {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border-radius: 9999px;
+      background: radial-gradient(
+        closest-side,
+        currentColor 12%,
+        color-mix(in srgb, currentColor 20%, transparent) 20%,
+        color-mix(in srgb, currentColor 5%, transparent) 45%,
+        color-mix(in srgb, currentColor 2%, transparent) 70%,
+        transparent
+      );
+      pointer-events: none;
     }
 
     &.respawning {
@@ -719,8 +734,6 @@
       }
 
       background-color: transparent !important;
-      box-shadow: none;
-      filter: none;
       opacity: 1;
       pointer-events: none;
       transform: none;
