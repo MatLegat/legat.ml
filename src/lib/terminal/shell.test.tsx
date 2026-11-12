@@ -147,7 +147,7 @@ describe("ls", () => {
   });
 
   it("honors -1 on directories with a custom listing", () => {
-    expect(run("ls -1 skills")).toBe("backend/\nfrontend/\ntesting/\ntools/");
+    expect(run("ls -1 skills")).toBe("backend/\ndata/\nfrontend/\ntesting/\ntools/");
   });
 
   it("lists the same file twice", () => {

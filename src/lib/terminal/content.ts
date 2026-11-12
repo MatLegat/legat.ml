@@ -17,10 +17,11 @@ export const FAST = 600;
 const MED = 220;
 
 export const SKILLS = [
-  ["frontend", "TypeScript, Next.js, React, Vue.js, Tailwind CSS, SASS, Emotion CSS"],
+  ["frontend", "TypeScript, Next.js, React, Zustand, Vue.js, Tailwind CSS, SASS, Emotion CSS"],
   ["backend", "Node.js, Express, Elysia, Ruby on Rails, PHP"],
+  ["data", "PostgreSQL, Drizzle"],
   ["testing", "Vitest, Jest, Jasmine"],
-  ["tools", "Git, REST APIs, Bash, MeshCentral, CI/CD, Vercel, GCP"],
+  ["tools", "Git, REST APIs, Bash, MeshCentral, CI/CD (GitHub Actions, CircleCI), Vercel, GCP"],
 ] as const;
 
 // [label, text shown, link] for the contact block
@@ -31,6 +32,9 @@ export const CONTACTS = [
   ["cv", "Matteus_Legat_CV.pdf", cvPdfUrl],
 ] as const;
 
+export const LANGUAGES = "English: C1 · Portuguese: Native";
+export const STATUS = "Open to remote frontend and full-stack opportunities · UTC−3";
+
 export const blocks: Block[] = [
   {
     id: "whoami",
@@ -39,7 +43,10 @@ export const blocks: Block[] = [
       { text: "\n" },
       { text: "Matteus Legat", className: "text-term-yellow crt-glow", speed: FAST },
       { text: "\n" },
-      { text: "Full Stack Web Developer · Florianópolis, BR\n", className: "text-term-dim" },
+      {
+        text: "Senior Full Stack Engineer (Frontend-focused) · Florianópolis, BR\n",
+        className: "text-term-dim",
+      },
       { text: "matteus@legat.ml", className: "text-term-cyan", href: "mailto:matteus@legat.ml" },
       { text: "\n" },
     ],
@@ -52,11 +59,11 @@ export const blocks: Block[] = [
       { text: "# About\n", className: "text-term-magenta", speed: FAST },
       {
         text:
-          "Full-stack web developer with 10+ years building and maintaining scalable\n" +
-          "web applications across ecommerce, enterprise, and platform-based products.\n" +
-          "Strong focus on modern frontend (React, Next.js) with solid backend chops\n" +
-          "in Node.js. Production-ready solutions, architecture decisions, cross-team\n" +
-          "collaboration.\n",
+          "Frontend-focused full-stack engineer with 10+ years of experience\n" +
+          "building ecommerce platforms and enterprise applications.\n" +
+          "Combines interface design with React, Next.js, TypeScript and Node.js\n" +
+          "development to deliver booking systems, payment flows, dashboards\n" +
+          "and self-service kiosks.\n",
         speed: FAST,
       },
     ],
@@ -77,7 +84,7 @@ export const blocks: Block[] = [
     output: [
       { text: "\n" },
       { text: "[2014–2018] ", className: "text-term-yellow", speed: FAST },
-      { text: "Bachelor in Computer Science\n", speed: FAST },
+      { text: "Bachelor’s degree in Computer Science\n", speed: FAST },
       {
         text: "            Federal University of Santa Catarina — UFSC\n",
         className: "text-term-dim",
@@ -99,8 +106,10 @@ export const blocks: Block[] = [
         { text, className: "text-term-cyan", speed: FAST, href },
         { text: "\n" },
       ]),
+      { text: "  languages ", className: "text-term-yellow", speed: FAST },
+      { text: `${LANGUAGES}\n`, speed: FAST },
       { text: "  status    ", className: "text-term-yellow", speed: FAST },
-      { text: "open to opportunities\n", className: "text-term-green", speed: FAST },
+      { text: `${STATUS}\n`, className: "text-term-green", speed: FAST },
     ],
   },
 ];
@@ -124,12 +133,16 @@ function experienceOutput(): Segment[] {
     {
       hash: "a1f0c2e",
       period: "2020–now",
-      role: "Full Stack Developer",
+      role: "Senior Full Stack Engineer",
       company: "Binamik Tecnologia",
       bullets: [
-        "Tourism ecosystem: white-label ecommerce, kiosks, payments/booking",
-        "Scalable React + Next.js frontends, Node/Express integrations",
-        "Testing & code quality with Jest; cross-team product/design work",
+        "Tourism ecommerce, booking systems and self-service kiosks",
+        "Designed and built React/Next.js checkout with Pix and card payments",
+        "Payment gateway integrations and Twilio booking notifications",
+        "Ecommerce dashboards with TypeScript, Node.js, Elysia and Drizzle",
+        "Kiosk fleet management with MeshCentral",
+        "CI/CD with GitHub Actions and CircleCI; GCP, Vercel and DB migrations",
+        "Video-enabled product cards: UI, storage, compression and delivery",
       ],
     },
     {
@@ -153,7 +166,7 @@ function experienceOutput(): Segment[] {
     {
       hash: "27ab9d1",
       period: "2017–2018",
-      role: "C++ / IoT Trainee",
+      role: "Research Trainee · C++ / IoT",
       company: "LabSEC — UFSC",
       bullets: [
         "Modernized restaurant access control systems",
@@ -163,7 +176,7 @@ function experienceOutput(): Segment[] {
     {
       hash: "0001a3f",
       period: "2015–2017",
-      role: "Full-Stack Trainee",
+      role: "Research Trainee · Full Stack",
       company: "LabSEC — UFSC",
       bullets: [
         "Public Key Infrastructure platform (ICPEdu — RNP)",

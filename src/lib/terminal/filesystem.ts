@@ -1,7 +1,7 @@
 // The fake home directory the shell commands browse.
 
 import type { Segment } from "@/components/Typewriter";
-import { blockOutput, CONTACTS, SKILLS } from "./content";
+import { blockOutput, CONTACTS, LANGUAGES, SKILLS, STATUS } from "./content";
 
 export const HOME = "/home/matteus";
 export const USER = "matteus";
@@ -26,7 +26,8 @@ const CONTACT_SCRIPT: Segment[] = [
   { text: "echo\n", className: "text-term-cyan" },
   ...[
     ...CONTACTS.map(([label, text]) => [label, text]),
-    ["status", "open to opportunities"],
+    ["languages", LANGUAGES],
+    ["status", STATUS],
   ].flatMap(([label, text]): Segment[] => [
     { text: "printf ", className: "text-term-cyan" },
     { text: '"  %-9s %s\\n" ', className: "text-term-green" },

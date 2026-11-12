@@ -25,17 +25,18 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "matteus@legat:~ — Full Stack Developer" },
+      { title: "matteus@legat:~ — Senior Full Stack Engineer" },
       {
         name: "description",
         content:
-          "Terminal-style CV of Matteus Legat — full-stack web developer with 10+ years building scalable web apps with React, Next.js, and Node.js.",
+          "Terminal-style CV of Matteus Legat — frontend-focused full-stack engineer with 10+ years building ecommerce platforms and enterprise applications with React, Next.js, TypeScript, and Node.js.",
       },
-      { property: "og:title", content: "matteus@legat:~ — Full Stack Developer" },
+      { property: "og:title", content: "matteus@legat:~ — Senior Full Stack Engineer" },
       { property: "og:url", content: `${SITE_URL}/` },
       {
         property: "og:description",
-        content: "10+ years building scalable web apps with React, Next.js, and Node.js.",
+        content:
+          "10+ years building ecommerce platforms and enterprise applications with React, Next.js, TypeScript, and Node.js.",
       },
     ],
     links: [{ rel: "canonical", href: `${SITE_URL}/` }],

@@ -14,7 +14,7 @@ describe("index page SSR", () => {
       "Valtech Brazil",
       "Federal University of Santa Catarina",
       "Vitest, Jest, Jasmine",
-      "open to opportunities",
+      "Open to remote frontend and full-stack opportunities",
       "github.com/matlegat",
       "linkedin.com/in/matlegat",
       "Matteus_Legat_CV.pdf",
