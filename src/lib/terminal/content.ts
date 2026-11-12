@@ -166,7 +166,7 @@ function experienceOutput(): Segment[] {
     {
       hash: "27ab9d1",
       period: "2017–2018",
-      role: "Research Trainee · C++ / IoT",
+      role: "Trainee · C++ / IoT",
       company: "LabSEC — UFSC",
       bullets: [
         "Modernized restaurant access control systems",
@@ -176,7 +176,7 @@ function experienceOutput(): Segment[] {
     {
       hash: "0001a3f",
       period: "2015–2017",
-      role: "Research Trainee · Full Stack",
+      role: "Trainee · Full Stack",
       company: "LabSEC — UFSC",
       bullets: [
         "Public Key Infrastructure platform (ICPEdu — RNP)",
