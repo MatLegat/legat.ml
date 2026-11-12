@@ -8,6 +8,7 @@ import {
   type Ref,
 } from "react";
 import cvPdfUrl from "@/assets/Matteus_Legat_CV.pdf?url";
+import { PdfViewer } from "@/components/PdfViewer";
 import { TrafficLights } from "@/components/WindowControls";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { SITE_URL } from "@/lib/site";
@@ -242,11 +243,7 @@ export function BrowserWindow({
       </div>
 
       {page === "cv" ? (
-        <iframe
-          src={cvPdfUrl}
-          title="Curriculum (PDF)"
-          className="min-h-0 w-full flex-1 border-0 bg-[#525659]"
-        />
+        <PdfViewer url={cvPdfUrl} title="Curriculum (PDF)" />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-[#1e1e1e] px-6 py-10 sm:px-12">
           <h2 className="mx-auto max-w-xl text-lg font-semibold text-white/90">Favorites</h2>
