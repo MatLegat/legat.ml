@@ -21,7 +21,10 @@ export const SKILLS = [
   ["backend", "Node.js, Express, Elysia, Ruby on Rails, PHP"],
   ["data", "PostgreSQL, Drizzle"],
   ["testing", "Vitest, Jest, Jasmine"],
-  ["tools", "Git, REST APIs, Bash, MeshCentral, CI/CD (GitHub Actions, CircleCI), Vercel, GCP"],
+  [
+    "tools",
+    "Git, REST APIs, Bash, MeshCentral, CI/CD (GitHub Actions, CircleCI), Vercel, GCP, AI-assisted development (Claude Code, Codex)",
+  ],
 ] as const;
 
 // [label, text shown, link] for the contact block
