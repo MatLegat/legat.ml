@@ -17,9 +17,12 @@ export const FAST = 600;
 const MED = 220;
 
 export const SKILLS = [
-  ["frontend", "TypeScript, Next.js, React, Zustand, Vue.js, Tailwind CSS, SASS, Emotion CSS"],
+  [
+    "frontend",
+    "TypeScript, Next.js (App Router, RSC), React, Zustand, Vue.js, Tailwind CSS, SASS, Emotion CSS",
+  ],
   ["backend", "Node.js, Express, Elysia, Ruby on Rails, PHP"],
-  ["data", "PostgreSQL, Drizzle"],
+  ["data", "PostgreSQL (Neon), Drizzle ORM"],
   ["testing", "Vitest, Jest, Jasmine"],
   [
     "tools",
@@ -64,9 +67,9 @@ export const blocks: Block[] = [
         text:
           "Frontend-focused full-stack engineer with 10+ years of experience\n" +
           "building ecommerce platforms and enterprise applications.\n" +
-          "Combines interface design with React, Next.js, TypeScript and Node.js\n" +
-          "development to deliver booking systems, payment flows, dashboards\n" +
-          "and self-service kiosks.\n",
+          "Specializes in Next.js (App Router, Server Components), React,\n" +
+          "TypeScript and Node.js, delivering booking systems, payment flows,\n" +
+          "dashboards and self-service kiosks.\n",
         speed: FAST,
       },
     ],
@@ -141,10 +144,11 @@ function experienceOutput(): Segment[] {
       bullets: [
         "Tourism ecommerce, booking systems and self-service kiosks",
         "Designed and built React/Next.js checkout with Pix and card payments",
+        "Next.js App Router storefronts: Server Components, caching and SEO",
         "Payment gateway integrations and Twilio booking notifications",
         "Ecommerce dashboards with TypeScript, Node.js, Elysia and Drizzle",
         "Kiosk fleet management with MeshCentral",
-        "CI/CD with GitHub Actions and CircleCI; GCP, Vercel and DB migrations",
+        "CI/CD with GitHub Actions and CircleCI; GCP, Vercel, Neon migrations",
         "Video-enabled product cards: UI, storage, compression and delivery",
       ],
     },

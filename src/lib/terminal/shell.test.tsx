@@ -157,7 +157,9 @@ describe("ls", () => {
 
   it("lists several targets with headers", () => {
     const out = run("ls about.md skills/frontend");
-    expect(out).toMatch(/^about\.md\n+skills\/frontend:\nTypeScript, Next\.js, React/);
+    expect(out).toMatch(
+      /^about\.md\n+skills\/frontend:\nTypeScript, Next\.js \(App Router, RSC\), React/,
+    );
   });
 
   it("reports missing paths and keeps going", () => {
