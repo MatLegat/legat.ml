@@ -158,7 +158,7 @@ function experienceOutput(): Segment[] {
       role: "Front End Developer",
       company: "Valtech Brazil",
       bullets: [
-        "Enterprise web apps with Vue.js + SASS",
+        "Enterprise web apps, mostly Vue.js + SASS, some React",
         "Clients: Bayer, L'Oréal, Sam's Club",
         "Responsive, accessible, component-based systems · agile teams",
       ],
