@@ -143,12 +143,12 @@ function experienceOutput(): Segment[] {
       company: "Binamik Tecnologia",
       bullets: [
         "Tourism ecommerce, booking systems and self-service kiosks",
-        "Designed and built React/Next.js checkout with Pix and card payments",
+        "React/Next.js checkout with Pix and cards: higher conversion, lower fees",
         "Next.js App Router storefronts: Server Components, caching and SEO",
         "Payment gateway integrations and Twilio booking notifications",
-        "Ecommerce dashboards with TypeScript, Node.js, Elysia and Drizzle",
-        "Kiosk fleet management with MeshCentral",
-        "CI/CD with GitHub Actions and CircleCI; GCP, Vercel, Neon migrations",
+        "Customer sites and admin dashboards: TypeScript, Node.js, Elysia, Drizzle",
+        "Kiosk fleet management with MeshCentral across 4 Brazilian states",
+        "CI/CD with GitHub Actions to GCP/Vercel, Neon migrations, faster releases",
         "Video-enabled product cards: UI, storage, compression and delivery",
       ],
     },
@@ -173,7 +173,7 @@ function experienceOutput(): Segment[] {
     {
       hash: "27ab9d1",
       period: "2017–2018",
-      role: "Trainee · C++ / IoT",
+      role: "C++ / IoT Developer",
       company: "LabSEC — UFSC",
       bullets: [
         "Modernized restaurant access control systems",
@@ -183,7 +183,7 @@ function experienceOutput(): Segment[] {
     {
       hash: "0001a3f",
       period: "2015–2017",
-      role: "Trainee · Full Stack",
+      role: "Full Stack Developer",
       company: "LabSEC — UFSC",
       bullets: [
         "Public Key Infrastructure platform (ICPEdu — RNP)",
